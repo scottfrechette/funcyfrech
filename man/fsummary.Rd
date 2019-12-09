@@ -4,7 +4,7 @@
 \alias{fsummary}
 \title{Generate summary statistics on data}
 \usage{
-fsummary(df, n, ..., sort = T)
+fsummary(df, n, ..., sort = T, sort_by = p50)
 }
 \arguments{
 \item{df}{A tibble to summarize}
@@ -13,7 +13,9 @@ fsummary(df, n, ..., sort = T)
 
 \item{...}{Optional columns to group by}
 
-\item{sort}{if TRUE will sort output in descending order of n}
+\item{sort}{if TRUE will sort output in descending order}
+
+\item{sort_by}{Column to sort by}
 }
 \description{
 Generate summary statistics on data
