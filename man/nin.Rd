@@ -3,7 +3,6 @@
 \name{nin}
 \alias{nin}
 \alias{\%nin\%}
-\alias{\\%nin\\%}
 \title{Find Matching (or Non-Matching) Elements}
 \usage{
 x \%nin\% table
@@ -17,10 +16,4 @@ x \%nin\% table
 \code{\%nin\%} is a binary operator, which returns a logical vector indicating
 if there is a match or not for its left operand. A true vector element
 indicates no match in left operand, false indicates a match.
-}
-\examples{
-c('a','b','c') \\\%nin\\\% c('a','b')
-}
-\seealso{
-\code{\link{match}} \code{\link{\%in\%}}
 }
