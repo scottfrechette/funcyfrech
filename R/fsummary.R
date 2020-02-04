@@ -9,11 +9,11 @@
 #' @import dplyr
 #' @export
 
-fsummary <- function(df, n, ...,
+fsummary <- function(df, .n, ...,
                      sort = T, sort_by = p50) {
 
   grouping <- quos(...)
-  n_quo = enquo(n)
+  n_quo = enquo(.n)
 
   df_summary <- df %>%
     group_by(!!! grouping) %>%
