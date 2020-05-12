@@ -16,7 +16,7 @@
 
 fcount <- function(df, ..., sort = TRUE, pct = TRUE,
                    round = FALSE, denom = "sum", pct_formatting = TRUE,
-                   cum_sum = FALSE, cum_pct = FALSE, head = NULL) {
+                   cum_sum = FALSE, cum_prop = FALSE, head = NULL) {
 
   col_quos <- quos(...)
 
@@ -28,21 +28,21 @@ fcount <- function(df, ..., sort = TRUE, pct = TRUE,
     if(denom == "sum") {
 
       df <- df %>%
-        mutate(percent = n / sum(n))
+        mutate(prop = n / sum(n))
 
 
 
     } else {
 
       df <- df %>%
-        mutate(percent = n / denom)
+        mutate(prop = n / denom)
 
     }
 
     if(round) {
 
       df <- df %>%
-        mutate(percent = round(percent, 2))
+        mutate(prop = round(prop, 2))
 
     }
 
@@ -55,22 +55,24 @@ fcount <- function(df, ..., sort = TRUE, pct = TRUE,
 
   }
 
-  if(cum_pct) {
+  if(cum_prop) {
 
     df <- df %>%
-      mutate(cum_pct = cumsum(percent))
+      mutate(cum_prop = cumsum(prop))
 
   }
 
   if(pct_formatting) {
 
     df <- df %>%
-      mutate(percent = scales::percent(percent))
+      mutate(percent = scales::percent(prop)) %>%
+      select(-prop)
 
     if(cum_pct) {
 
       df <- df %>%
-        mutate(cum_pct = scales::percent(cum_pct))
+        mutate(cum_pct = scales::percent(cum_prop)) %>%
+        select(-cum_prop)
 
     }
 
