@@ -39,7 +39,7 @@
 #' @importFrom dplyr count left_join mutate rename group_by ungroup group_vars
 #' @export
 
-bind_log_odds <- function(tbl, set, feature, n, alpha = NULL) {
+bind_frech_lo <- function(tbl, set, feature, n, alpha = NULL) {
 
   set <- enquo(set)
   feature <- enquo(feature)

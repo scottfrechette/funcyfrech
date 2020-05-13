@@ -9,7 +9,7 @@
 #' @param denom denominator for calculating percent. If sum then will use sum of n otherwise will use value entered
 #' @param pct_formatting should percent formatting be applied
 #' @param cum_sum if TRUE will add column for cumulative sum
-#' @param cum_pct if TRUE will add column for cumulative percent
+#' @param cum_prop if TRUE will add column for cumulative percent
 #' @param head returns all values by default
 #' @import dplyr
 #' @export
@@ -68,10 +68,10 @@ fcount <- function(df, ..., sort = TRUE, pct = TRUE,
       mutate(percent = scales::percent(prop)) %>%
       select(-prop)
 
-    if(cum_pct) {
+    if(cum_prop) {
 
       df <- df %>%
-        mutate(cum_pct = scales::percent(cum_prop)) %>%
+        mutate(cum_prop = scales::percent(cum_prop)) %>%
         select(-cum_prop)
 
     }
