@@ -4,18 +4,18 @@
 \alias{fsummary}
 \title{Generate summary statistics on data}
 \usage{
-fsummary(df, n, ..., sort = T, sort_by = p50)
+fsummary(df, .n, ..., sort = T, sort_by = p50)
 }
 \arguments{
 \item{df}{A tibble to summarize}
-
-\item{n}{Column to summarize}
 
 \item{...}{Optional columns to group by}
 
 \item{sort}{if TRUE will sort output in descending order}
 
 \item{sort_by}{Column to sort by}
+
+\item{n}{Column to summarize}
 }
 \description{
 Generate summary statistics on data

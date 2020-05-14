@@ -4,9 +4,18 @@
 \alias{fcount}
 \title{Generate counts on data}
 \usage{
-fcount(df, ..., sort = TRUE, pct = TRUE, round = FALSE,
-  denom = "sum", pct_formatting = TRUE, cum_sum = FALSE,
-  cum_pct = FALSE, head = NULL)
+fcount(
+  df,
+  ...,
+  sort = TRUE,
+  pct = TRUE,
+  round = FALSE,
+  denom = "sum",
+  pct_formatting = TRUE,
+  cum_sum = FALSE,
+  cum_prop = FALSE,
+  head = NULL
+)
 }
 \arguments{
 \item{df}{a tibble to count}
@@ -25,7 +34,7 @@ fcount(df, ..., sort = TRUE, pct = TRUE, round = FALSE,
 
 \item{cum_sum}{if TRUE will add column for cumulative sum}
 
-\item{cum_pct}{if TRUE will add column for cumulative percent}
+\item{cum_prop}{if TRUE will add column for cumulative percent}
 
 \item{head}{returns all values by default}
 }
