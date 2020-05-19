@@ -1,7 +1,8 @@
-#' Generate counts on data
+#' Add proportion to counts
 #'
-#' @name fcount
-#' @param df a tibble to count
+#' @name add_prop
+#' @param df a tibble with counts
+#' @param n column of counts
 #' @param ... variables to group by
 #' @param sort if TRUE will sort output in descending order of n
 #' @param pct if TRUE will add percent column
@@ -14,44 +15,31 @@
 #' @import dplyr
 #' @export
 
-fcount <- function(df, ..., sort = TRUE, pct = TRUE,
-                   round = FALSE, denom = "sum", pct_formatting = FALSE,
-                   cum_sum = FALSE, cum_prop = FALSE, head = NULL) {
+add_prop <- function(df, n, ..., sort = TRUE,
+                   round = FALSE, denom = "sum",
+                   pct_formatting = FALSE, cum_prop = FALSE) {
 
   col_quos <- quos(...)
 
-  df <- df %>%
-    count(!!! col_quos, sort = sort)
+  if(denom == "sum") {
 
-  if(pct) {
-
-    if(denom == "sum") {
-
-      df <- df %>%
-        mutate(prop = n / sum(n))
+    df <- df %>%
+      group_by(!!! col_quos) %>%
+      mutate(prop = n / sum(n))
 
 
+  } else {
 
-    } else {
-
-      df <- df %>%
-        mutate(prop = n / denom)
-
-    }
-
-    if(round) {
-
-      df <- df %>%
-        mutate(prop = round(prop, 2))
-
-    }
+    df <- df %>%
+      group_by(!!! col_quos) %>%
+      mutate(prop = n / denom)
 
   }
 
-  if(cum_sum) {
+  if(round) {
 
     df <- df %>%
-      mutate(cum_sum = cumsum(n))
+      mutate(prop = round(prop, 2))
 
   }
 
@@ -65,7 +53,7 @@ fcount <- function(df, ..., sort = TRUE, pct = TRUE,
   if(pct_formatting) {
 
     df <- df %>%
-      mutate(percent = scales::percent(prop)) %>%
+      mutate(percent = scales::percent(prop, accuracy = 1)) %>%
       select(-prop)
 
     if(cum_prop) {
@@ -77,12 +65,7 @@ fcount <- function(df, ..., sort = TRUE, pct = TRUE,
 
   }
 
-  if(!is.null(head)) {
-
-    df <- head(df, 20)
-
-  }
-
-  df
+  df %>%
+    ungroup()
 
 }
