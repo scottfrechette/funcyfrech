@@ -14,6 +14,7 @@
 #' @param title title of plot
 #' @param facet group for faceting
 #' @param scales scales passed to facet_wrap
+#' @export
 
 geom_trend <- function(tbl, .date, .n, ...,
                        percent = FALSE,

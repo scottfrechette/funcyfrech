@@ -8,10 +8,11 @@
 #' @export
 
 normal_update <- function(prior_mean, prior_sd,
-                          data_mean, data_se,
+                          data_mean, data_sd, data_n,
                           plot = F) {
 
   prior_precision <- 1 / prior_sd ^ 2
+  data_se <- data_sd / sqrt(data_n)
   data_precision <- 1 / data_se ^ 2
   post_precision <- prior_precision + data_precision
   post_sd <- sqrt(1 / post_precision)

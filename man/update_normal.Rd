@@ -5,7 +5,7 @@
 \alias{normal_update}
 \title{Calculate normal-normal posterior}
 \usage{
-normal_update(prior_mean, prior_sd, data_mean, data_se, plot = F)
+normal_update(prior_mean, prior_sd, data_mean, data_sd, data_n, plot = F)
 }
 \arguments{
 \item{prior_mean}{Mean set by prior}
