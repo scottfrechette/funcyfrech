@@ -7,10 +7,18 @@
 \url{https://doi.org/10.1093/pan/mpn018}
 }
 \usage{
-bind_frech_lo(tbl, set, feature, n, alpha = NULL)
+bind_frech_lo(
+  tbl,
+  set,
+  feature,
+  n,
+  .alpha = NULL,
+  .equation = 15,
+  .unweighted = TRUE
+)
 }
 \arguments{
-\item{tbl}{A tidy dataset with one row per feature and set}
+\item{tbl}{A tidy dataset with one row per \code{feature} and \code{set}}
 
 \item{set}{Column of sets between which to compare features, such as
 documents for text data}
@@ -20,14 +28,21 @@ bigrams with text data}
 
 \item{n}{Column containing feature-set counts}
 
-\item{alpha}{(Optional) Prior frequency of each feature. Can be single number
-for all words or dataframe of counts for each feature}
+\item{.alpha}{If \code{NULL} uses empirical prior otherwise this is prior for every feature (uninformative)}
+
+\item{.equation}{Whether to compare to dataset (equation 15) or other sets (equation 16)}
+
+\item{.unweighted}{Whether or not to return the unweighted log odds,
+in addition to the weighted log odds. Defaults to \code{TRUE}.}
 }
 \description{
-Calculate and bind the log odds ratio, weighted by an uninformative Dirichlet
-prior, of a tidy dataset to the dataset itself. The weighted log odds ratio
-is added as a column. This functions supports non-standard evaluation through
-the tidyeval framework.
+Calculate and bind posterior log odds ratios, assuming a
+multinomial model with a Dirichlet prior. The Dirichlet prior
+parameters are set using an empirical Bayes approach by default,
+but an uninformative prior is also available. Assumes that data
+is in a tidy format, and adds the weighted log odds ratio
+as a column. Supports non-standard evaluation through the
+tidyeval framework.
 }
 \details{
 The arguments \code{set}, \code{feature}, and \code{n}
@@ -37,15 +52,4 @@ you can unquote strings and symbols. Grouping is preserved but ignored.
 The dataset must have exactly one row per set-feature combination for
 this calculation to succeed. Read Monroe, Colaresi, and Quinn (2017) for
 more on the weighted log odds ratio.
-}
-\examples{
-
-library(dplyr)
-
-gear_counts <- mtcars \%>\%
-  count(vs, gear)
-
-gear_counts
-
-
 }

@@ -1,18 +1,23 @@
 #' Bind the weighted log odds to a tidy dataset
 #'
-#' Calculate and bind the log odds ratio, weighted by an uninformative Dirichlet
-#' prior, of a tidy dataset to the dataset itself. The weighted log odds ratio
-#' is added as a column. This functions supports non-standard evaluation through
-#' the tidyeval framework.
+#' Calculate and bind posterior log odds ratios, assuming a
+#' multinomial model with a Dirichlet prior. The Dirichlet prior
+#' parameters are set using an empirical Bayes approach by default,
+#' but an uninformative prior is also available. Assumes that data
+#' is in a tidy format, and adds the weighted log odds ratio
+#' as a column. Supports non-standard evaluation through the
+#' tidyeval framework.
 #'
-#' @param tbl A tidy dataset with one row per feature and set
+#' @param tbl A tidy dataset with one row per `feature` and `set`
 #' @param set Column of sets between which to compare features, such as
 #' documents for text data
 #' @param feature Column of features for identifying differences, such as words or
 #' bigrams with text data
 #' @param n Column containing feature-set counts
-#' @param alpha (Optional) Prior frequency of each feature. Can be single number
-#' for all words or dataframe of counts for each feature
+#' @param .alpha If `NULL` uses empirical prior otherwise this is prior for every feature (uninformative)
+#' @param .equation Whether to compare to dataset (equation 15) or other sets (equation 16)
+#' @param .unweighted Whether or not to return the unweighted log odds,
+#'   in addition to the weighted log odds. Defaults to `TRUE`.
 #'
 #' @details The arguments \code{set}, \code{feature}, and \code{n}
 #' are passed by expression and support \link[rlang]{quasiquotation};
@@ -25,94 +30,73 @@
 #'
 #' @source <https://doi.org/10.1093/pan/mpn018>
 #'
-#' @examples
-#'
-#' library(dplyr)
-#'
-#' gear_counts <- mtcars %>%
-#'   count(vs, gear)
-#'
-#' gear_counts
-#'
-#'
 #' @importFrom rlang enquo as_name is_empty sym
 #' @importFrom dplyr count left_join mutate rename group_by ungroup group_vars
 #' @export
 
-bind_frech_lo <- function(tbl, set, feature, n, alpha = NULL) {
-
+bind_frech_lo <- function(tbl, set, feature, n,
+                          .alpha = NULL,
+                          .equation = 15,
+                          .unweighted = TRUE) {
   set <- enquo(set)
   feature <- enquo(feature)
-  y_col <- enquo(n)
+  n <- enquo(n)
   grouping <- group_vars(tbl)
   tbl <- ungroup(tbl)
 
-  if(is.null(alpha)) {
+  tbl <-tbl %>%
+    add_count(!!feature, wt = !!n, name = "alpha") %>% # count of each word
+    mutate(n_other = alpha - n)                        # count of word in group i
 
-    n_df <- count(tbl, !!set, wt = !!y_col, name = ".n")
-    alpha_df <- count(tbl, !!feature, wt = !!y_col, name = ".alpha")
-    df_joined <- tbl %>%
-      left_join(n_df, by = rlang::as_name(set)) %>%
-      left_join(alpha_df, by = rlang::as_name(feature)) %>%
-      mutate(.alpha0 = sum(!!y_col),
-             y_other = .alpha - !!y_col,
-             n_other = .alpha0 - .n,
-             l1 = (!!y_col + .alpha) / (.n + .alpha0 - !!y_col - .alpha),
-             l2 = (y_other + .alpha) / (n_other + .alpha0 - y_other - .alpha),
-             sigma2 = 1/(!!y_col + .alpha) + 1/(y_other + .alpha),
-             log_odds = (log(l1) - log(l2))/sqrt(sigma2))
-    tbl$log_odds <- df_joined$log_odds
+  if (!is.null(.alpha)) {tbl$alpha <- .alpha}
+
+  if (.equation == 15) {
+
+    tbl <- tbl %>%
+      mutate(y_wi = !!n + alpha) %>%                 # pseudo count of word w in group i
+      add_count(phrase, wt = y_wi, name = "y_w") %>% # total pseudo count of word w
+      add_count(!!set, wt = y_wi, name = "n_i") %>%  # pseudo count of all words in group i
+      mutate(
+        omega_wi = y_wi / (n_i - y_wi),              # odds in group i
+        omega_w = y_w / (sum(y_wi) - y_w),           # overall odds
+        delta_wi = log(omega_wi) - log(omega_w),     # eqn 15,
+        sigma2_wi = 1 / y_wi + 1 / y_w,              # eqn 18
+        zeta_wi = delta_wi / sqrt(sigma2_wi)         # eqn 21
+      ) %>%
+      rename(log_odds_weighted = zeta_wi,
+             log_odds = delta_wi) %>%
+      select(!!set, !!feature, !!n,
+             log_odds, log_odds_weighted)
+
+  } else if (.equation == 16) {
+
+    tbl <- tbl %>%
+      mutate(y_wi = !!n + alpha,
+             y_wj = n_other + alpha) %>%            # pseudo count of word w in group i
+      add_count(!!set, wt = y_wi, name = "n_i") %>% # pseudo count of all words in group i
+      add_count(!!set, wt = y_wj, name = "n_j") %>% # pseudo count of all words in group j
+      mutate(
+        omega_wi = y_wi / (n_i - y_wi),             # odds in group i
+        omega_wj = y_wj / (n_j - y_wj),             # odds in group j
+        delta_wi = log(omega_wi) - log(omega_wj),   # eqn 16,
+        sigma2_wi = 1 / y_wi + 1 / y_wj,            # eqn 20
+        zeta_wi = delta_wi / sqrt(sigma2_wi)        # eqn 22
+      ) %>%
+      rename(log_odds_weighted = zeta_wi,
+             log_odds = delta_wi) %>%
+      select(!!set, !!feature, !!n,
+             log_odds, log_odds_weighted)
 
   } else {
-
-    if(length(alpha) == 1) {
-
-      n_df <- count(tbl, !!set, wt = !!y_col, name = ".n")
-      y_total_df <- count(tbl, !!feature, wt = !!y_col, name = "y_total")
-      df_joined <- tbl %>%
-        left_join(n_df, by = rlang::as_name(set)) %>%
-        left_join(y_total_df, by = rlang::as_name(feature)) %>%
-        mutate(.alpha = alpha,
-               .alpha0 = nrow(distinct(tbl, !!feature)) * alpha,
-               y_other = y_total - !!y_col,
-               n_other = sum(!!y_col) - .n,
-               l1 = (!!y_col + .alpha) / (.n + .alpha0 - !!y_col - .alpha),
-               l2 = (y_other + .alpha) / (n_other + .alpha0 - y_other - .alpha),
-               sigma2 = 1/(!!y_col + .alpha) + 1/(y_other + .alpha),
-               log_odds = (log(l1) - log(l2))/sqrt(sigma2))
-      tbl$log_odds <- df_joined$log_odds
-
-    } else if (nrow(alpha) >= nrow(distinct(tbl, {{feature}}))) {
-
-      n_df <- count(tbl, !!set, wt = !!y_col, name = ".n")
-      y_total_df <- count(tbl, !!feature, wt = !!y_col, name = "y_total")
-      alpha0 <- sum(alpha[,2])
-      df_joined <- tbl %>%
-        left_join(n_df, by = rlang::as_name(set)) %>%
-        left_join(y_total_df, by = rlang::as_name(feature)) %>%
-        left_join(alpha, by = rlang::as_name(feature)) %>%
-        rename(.alpha = ncol(.)) %>%
-        mutate(.alpha0 = alpha0,
-               y_other = y_total - !!y_col,
-               n_other = sum(!!y_col) - .n,
-               l1 = (!!y_col + .alpha) / (.n + .alpha0 - !!y_col - .alpha),
-               l2 = (y_other + .alpha) / (n_other + .alpha0),
-               sigma2 = 1/(!!y_col + .alpha) + 1/(y_other + .alpha),
-               log_odds = (log(l1) - log(l2))/sqrt(sigma2))
-      tbl$log_odds <- df_joined$log_odds
-
-    } else {
-
-      message("alpha must be length 1 or feature")
-
-    }
-
+    stop("Please choose equation 15 or 16")
   }
+
+  if(.unweighted) {tbl$log_odds <- NULL}
 
   if (!is_empty(grouping)) {
     tbl <- group_by(tbl, !!sym(grouping))
   }
 
-  tbl
+  return(tbl)
 
 }
