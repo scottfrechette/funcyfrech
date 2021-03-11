@@ -48,7 +48,7 @@ add_blow <- function(tbl,
                      .odds = TRUE,
                      .prob = TRUE) {
 
-  .compare <- match.arg(.compare)
+  .type <- match.arg(.type)
 
   # groups preserved but ignored
   grouping <- group_vars(tbl)
