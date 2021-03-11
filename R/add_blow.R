@@ -42,7 +42,7 @@ add_blow <- function(tbl,
                      n,
                      topic = NULL,
                      .alpha = NULL,
-                     .compare = c("all", "groups"),
+                     .type = c("difference", "comparison"),
                      .unweighted = TRUE,
                      .variance = TRUE,
                      .odds = TRUE,
@@ -63,19 +63,20 @@ add_blow <- function(tbl,
 
   tbl <- tbl %>%
     add_count(.topic, .feature, wt = n_wik, name = "alpha_k") %>% # count of each feature
-    mutate(n_wjk = alpha_k - n_wik)                               # count of feature in group j
+    mutate(n_wjk = alpha_k - n_wik)                               # count of each feature in group j
 
   if (!is.null(.alpha)) {tbl$alpha_k <- .alpha}
 
-  if (.compare == "all") {
+  if (.type == "difference") {
 
     tbl <- tbl %>%
-      mutate(y_wik = n_wik + alpha_k) %>%                        # pseudo count of feature in group i
-      add_count(.topic, .feature, wt = y_wik, name = "y_wk") %>% # total pseudo count of feature
+      mutate(y_wik = n_wik + alpha_k) %>%                        # pseudo count of each feature in group i
+      add_count(.topic, .feature, wt = y_wik, name = "y_wk") %>% # pseudo count of each feature
       add_count(.topic, .group, wt = y_wik, name = "n_ik") %>%   # pseudo count of all features in group i
+      add_count(.topic, wt = y_wik, name = "n_k") %>%            # pseudo count of all features
       mutate(
-        omega_wik = y_wik / (n_ik - y_wik),                      # odds in group i
-        omega_wk = y_wk / (sum(y_wik) - y_wk),                   # overall odds
+        omega_wik = y_wik / (n_ik - y_wik),                      # odds of feature in group i
+        omega_wk = y_wk / (n_k - y_wk),                          # overall odds of feature
         delta_wik = log(omega_wik) - log(omega_wk),              # equation 15
         sigma2_wik = 1 / y_wik + 1 / y_wk,                       # equation 18
         zeta_wik = delta_wik / sqrt(sigma2_wik)                  # equation 21
@@ -89,16 +90,16 @@ add_blow <- function(tbl,
       mutate(odds = exp(log_odds),
              prob = odds / (1 + odds))
 
-  } else if (.compare == "groups") {
+  } else if (.type == "comparison") {
 
     tbl <- tbl %>%
-      mutate(y_wik = n_wik + alpha_k,                             # pseudo count of feature in group i
-             y_wjk = n_wjk + alpha_k) %>%                         # pseudo count of feature in group j
+      mutate(y_wik = n_wik + alpha_k,                             # pseudo count of each feature in group i
+             y_wjk = n_wjk + alpha_k) %>%                         # pseudo count of each feature in group j
       add_count(.topic, .group, wt = y_wik, name = "n_ik") %>%    # pseudo count of all features in group i
       add_count(.topic, .group, wt = y_wjk, name = "n_jk") %>%    # pseudo count of all features in group j
       mutate(
-        omega_wik = y_wik / (n_ik - y_wik),                       # odds in group i
-        omega_wjk = y_wjk / (n_jk - y_wjk),                       # odds in group j
+        omega_wik = y_wik / (n_ik - y_wik),                       # odds of feature in group i
+        omega_wjk = y_wjk / (n_jk - y_wjk),                       # odds of feature in group j
         delta_wik = log(omega_wik) - log(omega_wjk),              # equation 16
         sigma2_wik = 1 / y_wik + 1 / y_wjk,                       # equation 20
         zeta_wik = delta_wik / sqrt(sigma2_wik)                   # equation 22
@@ -114,7 +115,7 @@ add_blow <- function(tbl,
 
   } else {
 
-    stop("Comparisons can only be made against dataset or other groups")
+    stop("Comparisons can only be different from dataset or comparison to other groups")
 
   }
 
