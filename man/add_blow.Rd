@@ -14,7 +14,7 @@ add_blow(
   n,
   topic = NULL,
   .alpha = NULL,
-  .compare = c("all", "groups"),
+  .type = c("difference", "comparison"),
   .unweighted = TRUE,
   .variance = TRUE,
   .odds = TRUE,
@@ -37,8 +37,8 @@ bigrams with text data}
 \item{.alpha}{(Optional) Prior frequency of each feature. Can be null to
 calculate empirically or uninformative prior set for all features}
 
-\item{.compare}{Whether to compare group-feature combination to dataset or
-all other groups}
+\item{.type}{Whether to calculate group-feature difference from dataset or
+compare group-feature combination to all other groups}
 
 \item{.unweighted}{Whether to include point estimate log odds}
 

@@ -14,8 +14,8 @@
 #' @param topic (Optional) topic to compare groups within
 #' @param .alpha (Optional) Prior frequency of each feature. Can be null to
 #' calculate empirically or uninformative prior set for all features
-#' @param .compare Whether to compare group-feature combination to dataset or
-#' all other groups
+#' @param .type Whether to calculate group-feature difference from dataset or
+#' compare group-feature combination to all other groups
 #' @param .unweighted Whether to include point estimate log odds
 #' @param .variance Whether to include variance of feature
 #' @param .odds Whether to include odds of seeing feature within group
