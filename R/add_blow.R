@@ -85,7 +85,7 @@ add_blow <- function(tbl,
              log_odds = delta_wik,
              variance = sigma2_wik) %>%
       select(-.group, -.feature, -n_wik, -.topic,
-             -y_wik, -y_wk, -n_ik, -n_wjk,
+             -y_wik, -y_wk, -n_ik, -n_wjk, -n_k,
              -alpha_k, -omega_wik, -omega_wk) %>%
       mutate(odds = exp(log_odds),
              prob = odds / (1 + odds))
