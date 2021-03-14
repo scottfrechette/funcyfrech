@@ -12,10 +12,12 @@
 #' bigrams with text data
 #' @param n Column containing feature-set counts
 #' @param topic (Optional) topic to compare groups within
-#' @param .alpha (Optional) Prior frequency of each feature. Can be null to
-#' calculate empirically or uninformative prior set for all features
-#' @param .type Whether to calculate group-feature difference from dataset or
-#' compare group-feature combination to all other groups
+#' @param .prior Whether prior should be based on total frequenty count (empirical),
+#'  g-prior from empirical bayes (informed) or uninformed with set alpha (uninformed)
+#' @param .alpha (Optional) Frequency of each feature for uninformed prior
+#' @param .k_prior Penalty term for informed prior
+#' @param .compare Whether to compare group-feature to entire dataset or
+#' against all other groups
 #' @param .unweighted Whether to include point estimate log odds
 #' @param .variance Whether to include variance of feature
 #' @param .odds Whether to include odds of seeing feature within group
@@ -24,7 +26,6 @@
 #' @details The arguments \code{group}, \code{feature}, \code{n}, and \code{topic}
 #' are passed by expression and support \link[rlang]{quasiquotation};
 #' you can unquote strings and symbols. Grouping is preserved but ignored.
-#'
 #'
 #' The dataset must have exactly one row per group-feature combination for
 #' this calculation to succeed. Read Monroe, Colaresi, and Quinn (2017) for
@@ -37,37 +38,65 @@
 #' @export
 
 add_blow <- function(tbl,
-                     group,
-                     feature,
-                     n,
-                     topic = NULL,
-                     .alpha = NULL,
-                     .type = c("difference", "comparison"),
-                     .unweighted = TRUE,
-                     .variance = TRUE,
-                     .odds = TRUE,
-                     .prob = TRUE) {
+                      group,
+                      feature,
+                      n,
+                      topic = NULL,
+                      .prior = c("empirical", "informed", "uninformed"),
+                      .alpha = 1,
+                      .k_prior = 0.1,
+                      .compare = c("dataset", "groups"),
+                      .unweighted = TRUE,
+                      .variance = TRUE,
+                      .odds = TRUE,
+                      .prob = TRUE) {
 
-  .type <- match.arg(.type)
+  .compare <- match.arg(.compare)
+  .prior <- match.arg(.prior)
 
   # groups preserved but ignored
   grouping <- group_vars(tbl)
   tbl <- ungroup(tbl)
 
-  tbl$.group <- pull(tbl, {{group}})
-  tbl$.feature <- pull(tbl, {{feature}})
   tbl$n_wik <- pull(tbl, {{n}})
-  tbl$.topic <- "none"
-
-  if (!is.null(topic)) {tbl$.topic <- pull(tbl, {{topic}})}
 
   tbl <- tbl %>%
-    add_count(.topic, .feature, wt = n_wik, name = "alpha_k") %>% # count of each feature
-    mutate(n_wjk = alpha_k - n_wik)                               # count of each feature in group j
+    complete({{group}}, {{feature}}, fill = list(n_wik = 0)) %>%
+    mutate({{n}} := n_wik)
 
-  if (!is.null(.alpha)) {tbl$alpha_k <- .alpha}
+  tbl$.group <- pull(tbl, {{group}})
+  tbl$.feature <- pull(tbl, {{feature}})
+  tbl$.topic <- "none"
 
-  if (.type == "difference") {
+  if (!missing(topic)) {tbl$.topic <- pull(tbl, {{topic}})}
+
+  if(.prior == "empirical") {
+
+    tbl <- tbl %>%
+      add_count(.topic, .feature, wt = n_wik, name = "alpha_k") %>% # count of each feature
+      mutate(n_wjk = alpha_k - n_wik)                               # count of each feature in group j
+
+  } else if (.prior == "informed") {
+
+    tbl <- tbl %>%
+      add_count(.topic, .feature, wt = n_wik, name = "feature_cnt") %>%
+      add_count(.topic, .group, wt = n_wik, name = "group_cnt") %>%
+      add_count(.topic, wt = n_wik, name = "topic_cnt") %>%
+      mutate(alpha_k = feature_cnt * group_cnt / topic_cnt * .k_prior,
+             n_wjk = feature_cnt - n_wik) %>%
+      select(-feature_cnt, -group_cnt, -topic_cnt)
+
+  } else {
+
+    tbl <- tbl %>%
+      add_count(.topic, .feature, wt = n_wik, name = "feature_cnt") %>%
+      mutate(alpha_k = .alpha,
+             n_wjk = n_wik - feature_cnt) %>%
+      select(-feature_cnt)
+
+  }
+
+  if (.compare == "dataset") {
 
     tbl <- tbl %>%
       mutate(y_wik = n_wik + alpha_k) %>%                        # pseudo count of each feature in group i
@@ -79,8 +108,11 @@ add_blow <- function(tbl,
         omega_wk = y_wk / (n_k - y_wk),                          # overall odds of feature
         delta_wik = log(omega_wik) - log(omega_wk),              # equation 15
         sigma2_wik = 1 / y_wik + 1 / y_wk,                       # equation 18
+        # sigma2_wik = 1 / y_wik + 1 / (n_ik - y_wik) +
+        #   1 / y_wk + 1 / (n_k - y_wk),
         zeta_wik = delta_wik / sqrt(sigma2_wik)                  # equation 21
       ) %>%
+      filter(n_wik > 0) %>%
       rename(log_odds_weighted = zeta_wik,
              log_odds = delta_wik,
              variance = sigma2_wik) %>%
@@ -90,7 +122,7 @@ add_blow <- function(tbl,
       mutate(odds = exp(log_odds),
              prob = odds / (1 + odds))
 
-  } else if (.type == "comparison") {
+  } else if (.compare == "groups") {
 
     tbl <- tbl %>%
       mutate(y_wik = n_wik + alpha_k,                             # pseudo count of each feature in group i
@@ -102,8 +134,11 @@ add_blow <- function(tbl,
         omega_wjk = y_wjk / (n_jk - y_wjk),                       # odds of feature in group j
         delta_wik = log(omega_wik) - log(omega_wjk),              # equation 16
         sigma2_wik = 1 / y_wik + 1 / y_wjk,                       # equation 20
+        # sigma2_wik = 1 / y_wik + 1 / (n_ik - y_wik) +
+        #   1 / y_wjk + 1 / (n_jk - y_wjk),
         zeta_wik = delta_wik / sqrt(sigma2_wik)                   # equation 22
       ) %>%
+      filter(n_wik > 0) %>%
       rename(log_odds_weighted = zeta_wik,
              log_odds = delta_wik,
              variance = sigma2_wik) %>%

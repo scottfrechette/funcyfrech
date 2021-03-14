@@ -13,8 +13,10 @@ add_blow(
   feature,
   n,
   topic = NULL,
-  .alpha = NULL,
-  .type = c("difference", "comparison"),
+  .prior = c("empirical", "informed", "uninformed"),
+  .alpha = 1,
+  .k_prior = 0.1,
+  .compare = c("dataset", "groups"),
   .unweighted = TRUE,
   .variance = TRUE,
   .odds = TRUE,
@@ -34,11 +36,15 @@ bigrams with text data}
 
 \item{topic}{(Optional) topic to compare groups within}
 
-\item{.alpha}{(Optional) Prior frequency of each feature. Can be null to
-calculate empirically or uninformative prior set for all features}
+\item{.prior}{Whether prior should be based on total frequenty count (empirical),
+g-prior from empirical bayes (informed) or uninformed with set alpha (uninformed)}
 
-\item{.type}{Whether to calculate group-feature difference from dataset or
-compare group-feature combination to all other groups}
+\item{.alpha}{(Optional) Frequency of each feature for uninformed prior}
+
+\item{.k_prior}{Penalty term for informed prior}
+
+\item{.compare}{Whether to compare group-feature to entire dataset or
+against all other groups}
 
 \item{.unweighted}{Whether to include point estimate log odds}
 
