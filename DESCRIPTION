@@ -1,7 +1,7 @@
 Package: funcyfrech
 Type: Package
 Title: Frechette Functions
-Version: 0.1.0
+Version: 0.1.1
 Author: Scott Frechette
 Maintainer: Scott Frechette <scott.frechette@regions.com>
 Description: Random functions I like to use

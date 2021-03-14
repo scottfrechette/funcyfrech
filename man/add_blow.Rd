@@ -17,6 +17,7 @@ add_blow(
   .alpha = 1,
   .k_prior = 0.1,
   .compare = c("dataset", "groups"),
+  .center = FALSE,
   .unweighted = TRUE,
   .variance = TRUE,
   .odds = TRUE,
@@ -36,8 +37,8 @@ bigrams with text data}
 
 \item{topic}{(Optional) topic to compare groups within}
 
-\item{.prior}{Whether prior should be based on total frequenty count (empirical),
-g-prior from empirical bayes (informed) or uninformed with set alpha (uninformed)}
+\item{.prior}{Whether prior should be based on total frequency count (empirical),
+g-prior from empirical Bayes (informed) or uninformed with set alpha (uninformed)}
 
 \item{.alpha}{(Optional) Frequency of each feature for uninformed prior}
 
@@ -45,6 +46,8 @@ g-prior from empirical bayes (informed) or uninformed with set alpha (uninformed
 
 \item{.compare}{Whether to compare group-feature to entire dataset or
 against all other groups}
+
+\item{.center}{Whether to center log_odds_weighted across groups}
 
 \item{.unweighted}{Whether to include point estimate log odds}
 

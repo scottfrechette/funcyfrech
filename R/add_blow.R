@@ -12,12 +12,13 @@
 #' bigrams with text data
 #' @param n Column containing feature-set counts
 #' @param topic (Optional) topic to compare groups within
-#' @param .prior Whether prior should be based on total frequenty count (empirical),
-#'  g-prior from empirical bayes (informed) or uninformed with set alpha (uninformed)
+#' @param .prior Whether prior should be based on total frequency count (empirical),
+#'  g-prior from empirical Bayes (informed) or uninformed with set alpha (uninformed)
 #' @param .alpha (Optional) Frequency of each feature for uninformed prior
 #' @param .k_prior Penalty term for informed prior
 #' @param .compare Whether to compare group-feature to entire dataset or
 #' against all other groups
+#' @param .center Whether to center log_odds_weighted across groups
 #' @param .unweighted Whether to include point estimate log odds
 #' @param .variance Whether to include variance of feature
 #' @param .odds Whether to include odds of seeing feature within group
@@ -38,18 +39,19 @@
 #' @export
 
 add_blow <- function(tbl,
-                      group,
-                      feature,
-                      n,
-                      topic = NULL,
-                      .prior = c("empirical", "informed", "uninformed"),
-                      .alpha = 1,
-                      .k_prior = 0.1,
-                      .compare = c("dataset", "groups"),
-                      .unweighted = TRUE,
-                      .variance = TRUE,
-                      .odds = TRUE,
-                      .prob = TRUE) {
+                     group,
+                     feature,
+                     n,
+                     topic = NULL,
+                     .prior = c("empirical", "informed", "uninformed"),
+                     .alpha = 1,
+                     .k_prior = 0.1,
+                     .compare = c("dataset", "groups"),
+                     .center = FALSE,
+                     .unweighted = TRUE,
+                     .variance = TRUE,
+                     .odds = TRUE,
+                     .prob = TRUE) {
 
   .compare <- match.arg(.compare)
   .prior <- match.arg(.prior)
@@ -61,7 +63,7 @@ add_blow <- function(tbl,
   tbl$n_wik <- pull(tbl, {{n}})
 
   tbl <- tbl %>%
-    complete({{group}}, {{feature}}, fill = list(n_wik = 0)) %>%
+    tidyr::complete({{group}}, {{feature}}, fill = list(n_wik = 0)) %>%
     mutate({{n}} := n_wik)
 
   tbl$.group <- pull(tbl, {{group}})
@@ -153,6 +155,14 @@ add_blow <- function(tbl,
     stop("Comparisons can only be different from dataset or comparison to other groups")
 
   }
+
+  if(.center) {
+
+    tbl <- tbl %>%
+      group_by({{feature}}) %>%
+      mutate(log_odds_weighted = log_odds_weighted - mean(log_odds_weighted)) %>%
+      ungroup()
+    }
 
   if(!.unweighted) {tbl$log_odds <- NULL}
 
