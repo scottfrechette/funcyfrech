@@ -37,8 +37,9 @@ bigrams with text data}
 
 \item{topic}{(Optional) topic to compare groups within}
 
-\item{.prior}{Whether prior should be based on g-prior from empirical Bayes (informed),
-total frequency count (empirical), or uninformed with set alpha (uninformed)}
+\item{.prior}{Whether prior should be based on g-prior from empirical Bayes,
+uninformed with set alpha (uninformed), or total frequency count from tidylo
+implementation}
 
 \item{.k_prior}{Penalty term for informed prior}
 

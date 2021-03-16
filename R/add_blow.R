@@ -12,8 +12,9 @@
 #' bigrams with text data
 #' @param n Column containing feature-set counts
 #' @param topic (Optional) topic to compare groups within
-#' @param .prior Whether prior should be based on g-prior from empirical Bayes (informed),
-#' total frequency count (empirical), or uninformed with set alpha (uninformed)
+#' @param .prior Whether prior should be based on g-prior from empirical Bayes,
+#' uninformed with set alpha (uninformed), or total frequency count from tidylo
+#' implementation
 #' @param .alpha_prior Frequency of each feature for uninformed prior
 #' @param .k_prior Penalty term for informed prior
 #' @param .compare Whether to compare group-feature to entire dataset or
