@@ -17,11 +17,11 @@ add_blow(
   .alpha = 1,
   .k_prior = 0.1,
   .compare = c("dataset", "groups"),
-  .center = FALSE,
+  .complete = FALSE,
   .unweighted = TRUE,
   .variance = TRUE,
-  .odds = TRUE,
-  .prob = TRUE
+  .odds = FALSE,
+  .prob = FALSE
 )
 }
 \arguments{
@@ -47,7 +47,7 @@ g-prior from empirical Bayes (informed) or uninformed with set alpha (uninformed
 \item{.compare}{Whether to compare group-feature to entire dataset or
 against all other groups}
 
-\item{.center}{Whether to center log_odds_weighted across groups}
+\item{.complete}{Whether to complete all topic-group-feature combinations}
 
 \item{.unweighted}{Whether to include point estimate log odds}
 

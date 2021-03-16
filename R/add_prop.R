@@ -16,8 +16,8 @@
 #' @export
 
 add_prop <- function(df, n, ..., sort = TRUE,
-                   round = FALSE, denom = "sum",
-                   pct_formatting = FALSE, cum_prop = FALSE) {
+                     round = FALSE, denom = "sum",
+                     pct_formatting = FALSE, cum_prop = FALSE) {
 
   col_quos <- quos(...)
 
