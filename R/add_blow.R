@@ -1,6 +1,6 @@
 #' Bind the weighted log odds to a tidy dataset
 #'
-#' Calculate and bind the log odds ratio, weighted by an uninformative Dirichlet
+#' Calculate and bind the log odds ratio, weighted by a Dirichlet
 #' prior, of a tidy dataset to the dataset itself. The weighted log odds ratio
 #' is added as a column. This functions supports non-standard evaluation through
 #' the tidyeval framework.
@@ -12,8 +12,8 @@
 #' bigrams with text data
 #' @param n Column containing feature-set counts
 #' @param topic (Optional) topic to compare groups within
-#' @param .prior Whether prior should be based on total frequency count (empirical),
-#'  g-prior from empirical Bayes (informed) or uninformed with set alpha (uninformed)
+#' @param .prior Whether prior should be based on g-prior from empirical Bayes (informed),
+#' total frequency count (empirical), or uninformed with set alpha (uninformed)
 #' @param .alpha (Optional) Frequency of each feature for uninformed prior
 #' @param .k_prior Penalty term for informed prior
 #' @param .compare Whether to compare group-feature to entire dataset or
@@ -28,7 +28,7 @@
 #' are passed by expression and support \link[rlang]{quasiquotation};
 #' you can unquote strings and symbols. Grouping is preserved but ignored.
 #'
-#' The dataset must have exactly one row per group-feature combination for
+#' The dataset must have exactly one row per topic-group-feature combination for
 #' this calculation to succeed. Read Monroe, Colaresi, and Quinn (2017) for
 #' more on the weighted log odds ratio.
 #'
@@ -44,8 +44,8 @@ add_blow <- function (tbl,
                       n,
                       topic = NULL,
                       .prior = c("informed", "empirical", "uninformed"),
-                      .alpha = 1,
                       .k_prior = 0.1,
+                      .alpha = 1,
                       .compare = c("dataset", "groups"),
                       .complete = FALSE,
                       .unweighted = TRUE,
