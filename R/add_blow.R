@@ -14,7 +14,7 @@
 #' @param topic (Optional) topic to compare groups within
 #' @param .prior Whether prior should be based on g-prior from empirical Bayes (informed),
 #' total frequency count (empirical), or uninformed with set alpha (uninformed)
-#' @param .alpha (Optional) Frequency of each feature for uninformed prior
+#' @param .alpha_prior Frequency of each feature for uninformed prior
 #' @param .k_prior Penalty term for informed prior
 #' @param .compare Whether to compare group-feature to entire dataset or
 #' against all other groups
@@ -45,7 +45,7 @@ add_blow <- function (tbl,
                       topic = NULL,
                       .prior = c("informed", "empirical", "uninformed"),
                       .k_prior = 0.1,
-                      .alpha = 1,
+                      .alpha_prior = 1,
                       .compare = c("dataset", "groups"),
                       .complete = FALSE,
                       .unweighted = TRUE,
@@ -86,22 +86,22 @@ add_blow <- function (tbl,
              n_wjk = feature_cnt - n_wik) %>%
       select(-feature_cnt, -group_cnt, -topic_cnt)
 
-  .co} else if (.prior == "empirical") {
+    .co} else if (.prior == "empirical") {
 
-    tbl <- tbl %>%
-      add_count(.topic, .feature, wt = n_wik, name = "alpha_k") %>%
-      mutate(n_wjk = alpha_k - n_wik)
+      tbl <- tbl %>%
+        add_count(.topic, .feature, wt = n_wik, name = "alpha_k") %>%
+        mutate(n_wjk = alpha_k - n_wik)
 
-  } else {
+    } else {
 
-    tbl <- tbl %>%
-      add_count(.topic, .feature, wt = n_wik,
-                name = "feature_cnt") %>%
-      mutate(alpha_k = .alpha,
-             n_wjk = feature_cnt - n_wik) %>%
-      select(-feature_cnt)
+      tbl <- tbl %>%
+        add_count(.topic, .feature, wt = n_wik,
+                  name = "feature_cnt") %>%
+        mutate(alpha_k = .alpha_prior,
+               n_wjk = feature_cnt - n_wik) %>%
+        select(-feature_cnt)
 
-  }
+    }
 
   if (.compare == "dataset") {
 

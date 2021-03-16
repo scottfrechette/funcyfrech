@@ -15,7 +15,7 @@ add_blow(
   topic = NULL,
   .prior = c("informed", "empirical", "uninformed"),
   .k_prior = 0.1,
-  .alpha = 1,
+  .alpha_prior = 1,
   .compare = c("dataset", "groups"),
   .complete = FALSE,
   .unweighted = TRUE,
@@ -42,7 +42,7 @@ total frequency count (empirical), or uninformed with set alpha (uninformed)}
 
 \item{.k_prior}{Penalty term for informed prior}
 
-\item{.alpha}{(Optional) Frequency of each feature for uninformed prior}
+\item{.alpha_prior}{Frequency of each feature for uninformed prior}
 
 \item{.compare}{Whether to compare group-feature to entire dataset or
 against all other groups}
