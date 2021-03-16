@@ -43,7 +43,7 @@ add_blow <- function (tbl,
                       feature,
                       n,
                       topic = NULL,
-                      .prior = c("informed", "empirical", "uninformed"),
+                      .prior = c("empirical", "uninformed", "tidylo"),
                       .k_prior = 0.1,
                       .alpha_prior = 1,
                       .compare = c("dataset", "groups"),
@@ -76,7 +76,7 @@ add_blow <- function (tbl,
 
   if (!missing(topic)) {tbl$.topic <- pull(tbl, {{topic}})}
 
-  if (.prior == "informed") {
+  if (.prior == "empirical") {
 
     tbl <- tbl %>%
       add_count(.topic, .feature, wt = n_wik, name = "feature_cnt") %>%
@@ -86,20 +86,19 @@ add_blow <- function (tbl,
              n_wjk = feature_cnt - n_wik) %>%
       select(-feature_cnt, -group_cnt, -topic_cnt)
 
-    .co} else if (.prior == "empirical") {
+    } else if (.prior == "uninformed") {
 
       tbl <- tbl %>%
-        add_count(.topic, .feature, wt = n_wik, name = "alpha_k") %>%
-        mutate(n_wjk = alpha_k - n_wik)
+        add_count(.topic, .feature, wt = n_wik, name = "feature_cnt") %>%
+        mutate(alpha_k = .alpha_prior,
+               n_wjk = feature_cnt - n_wik) %>%
+        select(-feature_cnt)
 
     } else {
 
       tbl <- tbl %>%
-        add_count(.topic, .feature, wt = n_wik,
-                  name = "feature_cnt") %>%
-        mutate(alpha_k = .alpha_prior,
-               n_wjk = feature_cnt - n_wik) %>%
-        select(-feature_cnt)
+        add_count(.topic, .feature, wt = n_wik, name = "alpha_k") %>%
+        mutate(n_wjk = alpha_k - n_wik)
 
     }
 
@@ -110,17 +109,18 @@ add_blow <- function (tbl,
       add_count(.topic, .feature, wt = y_wik, name = "y_wk") %>%
       add_count(.topic, .group, wt = y_wik, name = "n_ik") %>%
       add_count(.topic, wt = y_wik, name = "n_k") %>%
-      mutate(omega_wik = y_wik/(n_ik - y_wik),
-             omega_wk = y_wk/(n_k - y_wk),
+      mutate(omega_wik = y_wik / (n_ik - y_wik),
+             omega_wk = y_wk / (n_k - y_wk),
              delta_wik = log(omega_wik) - log(omega_wk),
              sigma2_wik = 1/y_wik + 1/y_wk,
-             zeta_wik = delta_wik/sqrt(sigma2_wik)) %>%
+             zeta_wik = delta_wik / sqrt(sigma2_wik)) %>%
       filter(n_wik > 0) %>%
       rename(log_odds_weighted = zeta_wik,
-             log_odds = delta_wik, variance = sigma2_wik) %>%
-      select(-.group, -.feature, -n_wik, -.topic, -y_wik,
-             -y_wk, -n_ik, -n_wjk, -n_k, -alpha_k, -omega_wik,
-             -omega_wk) %>%
+             log_odds = delta_wik,
+             variance = sigma2_wik) %>%
+      select(-.group, -.feature, -n_wik, -.topic,
+             -y_wik, -y_wk, -n_ik, -n_wjk, -n_k,
+             -alpha_k, -omega_wik, -omega_wk) %>%
       mutate(odds = exp(log_odds),
              prob = odds/(1 + odds))
 
@@ -131,17 +131,18 @@ add_blow <- function (tbl,
              y_wjk = n_wjk + alpha_k) %>%
       add_count(.topic, .group, wt = y_wik, name = "n_ik") %>%
       add_count(.topic, .group, wt = y_wjk, name = "n_jk") %>%
-      mutate(omega_wik = y_wik/(n_ik - y_wik),
-             omega_wjk = y_wjk/(n_jk - y_wjk),
+      mutate(omega_wik = y_wik / (n_ik - y_wik),
+             omega_wjk = y_wjk / (n_jk - y_wjk),
              delta_wik = log(omega_wik) - log(omega_wjk),
              sigma2_wik = 1/y_wik + 1/y_wjk,
-             zeta_wik = delta_wik/sqrt(sigma2_wik)) %>%
+             zeta_wik = delta_wik / sqrt(sigma2_wik)) %>%
       filter(n_wik > 0) %>%
       rename(log_odds_weighted = zeta_wik,
-             log_odds = delta_wik, variance = sigma2_wik) %>%
-      select(-.group, -.feature, -n_wik, -.topic, -y_wik,
-             -y_wjk, -n_ik, -n_jk, -n_wjk, -alpha_k, -omega_wik,
-             -omega_wjk) %>%
+             log_odds = delta_wik,
+             variance = sigma2_wik) %>%
+      select(-.group, -.feature, -n_wik, -.topic,
+             -y_wik, -y_wjk, -n_ik, -n_jk, -n_wjk,
+             -alpha_k, -omega_wik, -omega_wjk) %>%
       mutate(odds = exp(log_odds),
              prob = odds/(1 + odds))
 

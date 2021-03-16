@@ -13,7 +13,7 @@ add_blow(
   feature,
   n,
   topic = NULL,
-  .prior = c("informed", "empirical", "uninformed"),
+  .prior = c("empirical", "uninformed", "tidylo"),
   .k_prior = 0.1,
   .alpha_prior = 1,
   .compare = c("dataset", "groups"),
