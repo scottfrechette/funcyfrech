@@ -87,21 +87,21 @@ add_blow <- function (tbl,
              n_wjk = feature_cnt - n_wik) %>%
       select(-feature_cnt, -group_cnt, -topic_cnt)
 
-    } else if (.prior == "uninformed") {
+  } else if (.prior == "uninformed") {
 
-      tbl <- tbl %>%
-        add_count(.topic, .feature, wt = n_wik, name = "feature_cnt") %>%
-        mutate(alpha_k = .alpha_prior,
-               n_wjk = feature_cnt - n_wik) %>%
-        select(-feature_cnt)
+    tbl <- tbl %>%
+      add_count(.topic, .feature, wt = n_wik, name = "feature_cnt") %>%
+      mutate(alpha_k = .alpha_prior,
+             n_wjk = feature_cnt - n_wik) %>%
+      select(-feature_cnt)
 
-    } else {
+  } else {
 
-      tbl <- tbl %>%
-        add_count(.topic, .feature, wt = n_wik, name = "alpha_k") %>%
-        mutate(n_wjk = alpha_k - n_wik)
+    tbl <- tbl %>%
+      add_count(.topic, .feature, wt = n_wik, name = "alpha_k") %>%
+      mutate(n_wjk = alpha_k - n_wik)
 
-    }
+  }
 
   if (.compare == "dataset") {
 
@@ -146,6 +146,142 @@ add_blow <- function (tbl,
              -alpha_k, -omega_wik, -omega_wjk) %>%
       mutate(odds = exp(log_odds),
              prob = odds/(1 + odds))
+
+  } else {
+
+    stop("Comparisons can only be different from dataset or comparison to other groups")
+
+  }
+
+  if (!.unweighted) {tbl$log_odds <- NULL}
+  if (!.variance) {tbl$variance <- NULL}
+  if (!.odds) {tbl$odds <- NULL}
+  if (!.prob) {tbl$prob <- NULL}
+
+  if (!is_empty(grouping)) {tbl <- group_by(tbl, !!sym(grouping))}
+
+  return(tbl)
+
+}
+
+# empirical is across topics
+# more closely follow nomenclature from paper
+
+#' @export
+add_blow_test <- function (tbl,
+                           group,
+                           feature,
+                           n,
+                           topic = NULL,
+                           .prior = c("empirical", "uninformative", "tidylo"),
+                           .k_prior = 0.1,
+                           .alpha_prior = 1,
+                           .compare = c("dataset", "groups"),
+                           .complete = FALSE,
+                           .unweighted = TRUE,
+                           .variance = TRUE,
+                           .odds = FALSE,
+                           .prob = FALSE) {
+
+  .compare <- match.arg(.compare)
+  .prior <- match.arg(.prior)
+
+  grouping <- group_vars(tbl)
+  tbl <- ungroup(tbl)
+
+  tbl$y_wik <- pull(tbl, {{n}})
+
+  if (.complete) {
+
+    tbl <- tbl %>%
+      tidyr::complete({{group}}, {{feature}},
+                      fill = list(y_wik = 0)) %>%
+      mutate({{n}} := y_wik)
+
+  }
+
+  tbl$.group <- pull(tbl, {{group}})
+  tbl$.feature <- pull(tbl, {{feature}})
+  tbl$.topic <- "none"
+
+  if (!missing(topic)) {tbl$.topic <- pull(tbl, {{topic}})}
+
+  if (.prior == "empirical") {
+
+    tbl <- tbl %>%
+      add_tally(wt = y_wik, name = "total_cnt") %>%
+      add_count(.feature, wt = y_wik, name = "feature_cnt") %>%
+      add_count(.group, wt = y_wik, name = "group_cnt") %>%
+      add_count(.topic, .feature, wt = y_wik, name = "topic_feature_cnt") %>%
+      mutate(alpha_wik = feature_cnt * group_cnt / total_cnt * .k_prior,
+             y_wjk = topic_feature_cnt - y_wik) %>%
+      select(-total_cnt, -feature_cnt, -group_cnt, -topic_feature_cnt)
+
+  } else if (.prior == "uninformative") {
+
+    tbl <- tbl %>%
+      add_count(.topic, .feature, wt = y_wik, name = "feature_cnt") %>%
+      mutate(alpha_wik = .alpha_prior,
+             y_wjk = feature_cnt - y_wik) %>%
+      select(-feature_cnt)
+
+  } else {
+
+    tbl <- tbl %>%
+      add_count(.topic, .feature, wt = y_wik, name = "alpha_wik") %>%
+      mutate(y_wjk = alpha_wik - y_wik)
+
+  }
+
+  if (.compare == "dataset") {
+
+    tbl <- tbl %>%
+      add_count(.topic, .feature, wt = y_wik, name = "y_wk") %>%
+      add_count(.topic, .feature, wt = alpha_wik, name = "alpha_wk") %>%
+      add_count(.topic, .group, wt = y_wik, name = "n_ik") %>%
+      add_count(.topic, .group, wt = alpha_wik, name = "alpha_ik") %>%
+      add_count(.topic, wt = y_wik, name = "n_k") %>%
+      add_count(.topic, wt = alpha_wik, name = "alpha_k") %>%
+      mutate(omega_wik = (y_wik + alpha_wik) / (n_ik + alpha_ik - y_wik - alpha_wik),
+             omega_wk = (y_wk + alpha_wk) / (n_k + alpha_k - y_wk - alpha_wk),
+             delta_wik = log(omega_wik) - log(omega_wk),
+             sigma2_wik = 1 / (y_wik + alpha_wik) + 1 / (n_ik + alpha_ik - y_wik - alpha_wik) +
+               1 / (y_wk + alpha_wk) + 1 / (n_k + alpha_k - y_wk - alpha_wk),
+             zeta_wik = delta_wik / sqrt(sigma2_wik)) %>%
+      filter(y_wik > 0) %>%
+      rename(log_odds = delta_wik,
+             variance = sigma2_wik,
+             zeta = zeta_wik) %>%
+      select(-.group, -.feature, -.topic,
+             -y_wik, -y_wjk, -y_wk, -n_ik, -n_k,
+             -alpha_wik, -alpha_wk, -alpha_ik, -alpha_k,
+             -omega_wik, -omega_wk) %>%
+      mutate(odds = exp(log_odds),
+             prob = odds / (1 + odds))
+
+  } else if (.compare == "groups") {
+
+    tbl <- tbl %>%
+      add_count(.topic, .group, wt = y_wik, name = "n_ik") %>%
+      add_count(.topic, .group, wt = alpha_wik, name = "alpha_ik") %>%
+      add_count(.topic, .group, wt = y_wjk, name = "n_jk") %>%
+      add_count(.topic, .group, wt = alpha_wik, name = "alpha_jk") %>%
+      mutate(omega_wik = (y_wik + alpha_wik) / (n_ik + alpha_ik - y_wik - alpha_wik),
+             omega_wjk = (y_wjk + alpha_wik) / (n_jk + alpha_jk - y_wjk - alpha_wik),
+             delta_wik = log(omega_wik) - log(omega_wjk),
+             sigma2_wik = 1 / (y_wik + alpha_wik) + 1 / (n_ik + alpha_ik - y_wik - alpha_wik) +
+               1 / (y_wjk + alpha_wik) + 1 / (n_jk + alpha_jk - y_wjk - alpha_wik),
+             zeta_wik = delta_wik / sqrt(sigma2_wik)) %>%
+      filter(y_wik > 0) %>%
+      rename(log_odds = delta_wik,
+             variance = sigma2_wik,
+             zeta = zeta_wik) %>%
+      select(-.group, -.feature, -.topic,
+             -y_wik, -y_wjk, -y_wjk, -n_ik, -n_jk,
+             -alpha_wik, -alpha_ik, -alpha_jk,
+             -omega_wik, -omega_wjk) %>%
+      mutate(odds = exp(log_odds),
+             prob = odds / (1 + odds))
 
   } else {
 

@@ -3,6 +3,7 @@
 export("%>%")
 export("%nin%")
 export(add_blow)
+export(add_blow_test)
 export(add_prop)
 export(bare_combine)
 export(bare_space_combine)
