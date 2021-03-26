@@ -83,7 +83,7 @@ add_blow <- function (tbl,
       add_count(.topic, .feature, wt = n_wik, name = "feature_cnt") %>%
       add_count(.topic, .group, wt = n_wik, name = "group_cnt") %>%
       add_count(.topic, wt = n_wik, name = "topic_cnt") %>%
-      mutate(alpha_k = feature_cnt * group_cnt / topic_cnt * .k_prior,
+      mutate(alpha_k = feature_cnt / topic_cnt * group_cnt * .k_prior,
              n_wjk = feature_cnt - n_wik) %>%
       select(-feature_cnt, -group_cnt, -topic_cnt)
 
@@ -212,10 +212,12 @@ add_blow_test <- function (tbl,
       add_tally(wt = y_wik, name = "total_cnt") %>%
       add_count(.feature, wt = y_wik, name = "feature_cnt") %>%
       add_count(.group, wt = y_wik, name = "group_cnt") %>%
+      add_count(.topic, .group, wt = y_wik, name = "topic_group_cnt") %>%
       add_count(.topic, .feature, wt = y_wik, name = "topic_feature_cnt") %>%
-      mutate(alpha_wik = feature_cnt * group_cnt / total_cnt * .k_prior,
+      mutate(alpha_wik = feature_cnt / total_cnt * topic_group_cnt * .k_prior,
              y_wjk = topic_feature_cnt - y_wik) %>%
-      select(-total_cnt, -feature_cnt, -group_cnt, -topic_feature_cnt)
+      select(-total_cnt, -feature_cnt, -group_cnt,
+             -topic_feature_cnt, -topic_group_cnt)
 
   } else if (.prior == "uninformative") {
 
@@ -233,6 +235,7 @@ add_blow_test <- function (tbl,
 
   }
 
+  # rename to y_kwi, etc. to match paper
   if (.compare == "dataset") {
 
     tbl <- tbl %>%
@@ -265,12 +268,11 @@ add_blow_test <- function (tbl,
       add_count(.topic, .group, wt = y_wik, name = "n_ik") %>%
       add_count(.topic, .group, wt = alpha_wik, name = "alpha_ik") %>%
       add_count(.topic, .group, wt = y_wjk, name = "n_jk") %>%
-      add_count(.topic, .group, wt = alpha_wik, name = "alpha_jk") %>%
       mutate(omega_wik = (y_wik + alpha_wik) / (n_ik + alpha_ik - y_wik - alpha_wik),
-             omega_wjk = (y_wjk + alpha_wik) / (n_jk + alpha_jk - y_wjk - alpha_wik),
+             omega_wjk = (y_wjk + alpha_wik) / (n_jk + alpha_ik - y_wjk - alpha_wik),
              delta_wik = log(omega_wik) - log(omega_wjk),
              sigma2_wik = 1 / (y_wik + alpha_wik) + 1 / (n_ik + alpha_ik - y_wik - alpha_wik) +
-               1 / (y_wjk + alpha_wik) + 1 / (n_jk + alpha_jk - y_wjk - alpha_wik),
+               1 / (y_wjk + alpha_wik) + 1 / (n_jk + alpha_ik - y_wjk - alpha_wik),
              zeta_wik = delta_wik / sqrt(sigma2_wik)) %>%
       filter(y_wik > 0) %>%
       rename(log_odds = delta_wik,
@@ -278,7 +280,7 @@ add_blow_test <- function (tbl,
              zeta = zeta_wik) %>%
       select(-.group, -.feature, -.topic,
              -y_wik, -y_wjk, -y_wjk, -n_ik, -n_jk,
-             -alpha_wik, -alpha_ik, -alpha_jk,
+             -alpha_wik, -alpha_ik,
              -omega_wik, -omega_wjk) %>%
       mutate(odds = exp(log_odds),
              prob = odds / (1 + odds))
