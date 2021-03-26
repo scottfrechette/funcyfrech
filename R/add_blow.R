@@ -230,8 +230,10 @@ add_blow_test <- function (tbl,
   } else {
 
     tbl <- tbl %>%
-      add_count(.topic, .feature, wt = y_wik, name = "alpha_wik") %>%
-      mutate(y_wjk = alpha_wik - y_wik)
+      add_count(.topic, .feature, wt = y_wik, name = "feature_cnt") %>%
+      mutate(alpha_wik = feature_cnt * k_prior,
+             y_wjk = alpha_wik - y_wik) %>%
+      select(-feature_cnt)
 
   }
 
