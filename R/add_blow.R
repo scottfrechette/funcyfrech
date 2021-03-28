@@ -15,10 +15,10 @@
 #' @param .prior Whether prior should be based on g-prior from empirical Bayes,
 #' uninformed with set alpha (uninformed), or total frequency count from tidylo
 #' implementation
-#' @param .alpha_prior Frequency of each feature for uninformed prior
-#' @param .k_prior Penalty term for informed prior
 #' @param .compare Whether to compare group-feature to entire dataset or
 #' against all other groups
+#' @param .alpha_prior Frequency of each feature for uninformed prior
+#' @param .k_prior Penalty term for informed prior
 #' @param .complete Whether to complete all topic-group-feature combinations
 #' @param .unweighted Whether to include point estimate log odds
 #' @param .variance Whether to include variance of feature
@@ -39,149 +39,23 @@
 #' @importFrom dplyr count left_join mutate rename group_by ungroup group_vars
 #' @export
 
+# more closely follow nomenclature from paper
+# rename to y_kwi, etc. to match paper
+
 add_blow <- function (tbl,
                       group,
                       feature,
                       n,
                       topic = NULL,
-                      .prior = c("empirical", "uninformed", "tidylo"),
+                      .prior = c("empirical", "uninformative", "tidylo"),
+                      .compare = c("dataset", "groups"),
                       .k_prior = 0.1,
                       .alpha_prior = 1,
-                      .compare = c("dataset", "groups"),
                       .complete = FALSE,
                       .unweighted = TRUE,
                       .variance = TRUE,
                       .odds = FALSE,
                       .prob = FALSE) {
-
-  .compare <- match.arg(.compare)
-  .prior <- match.arg(.prior)
-
-  grouping <- group_vars(tbl)
-  tbl <- ungroup(tbl)
-
-  tbl$n_wik <- pull(tbl, {{n}})
-
-  if (.complete) {
-
-    tbl <- tbl %>%
-      tidyr::complete({{group}}, {{feature}},
-                      fill = list(n_wik = 0)) %>%
-      mutate({{n}} := n_wik)
-
-  }
-
-  tbl$.group <- pull(tbl, {{group}})
-  tbl$.feature <- pull(tbl, {{feature}})
-  tbl$.topic <- "none"
-
-  if (!missing(topic)) {tbl$.topic <- pull(tbl, {{topic}})}
-
-  if (.prior == "empirical") {
-
-    tbl <- tbl %>%
-      add_count(.topic, .feature, wt = n_wik, name = "feature_cnt") %>%
-      add_count(.topic, .group, wt = n_wik, name = "group_cnt") %>%
-      add_count(.topic, wt = n_wik, name = "topic_cnt") %>%
-      mutate(alpha_k = feature_cnt / topic_cnt * group_cnt * .k_prior,
-             n_wjk = feature_cnt - n_wik) %>%
-      select(-feature_cnt, -group_cnt, -topic_cnt)
-
-  } else if (.prior == "uninformed") {
-
-    tbl <- tbl %>%
-      add_count(.topic, .feature, wt = n_wik, name = "feature_cnt") %>%
-      mutate(alpha_k = .alpha_prior,
-             n_wjk = feature_cnt - n_wik) %>%
-      select(-feature_cnt)
-
-  } else {
-
-    tbl <- tbl %>%
-      add_count(.topic, .feature, wt = n_wik, name = "alpha_k") %>%
-      mutate(n_wjk = alpha_k - n_wik)
-
-  }
-
-  if (.compare == "dataset") {
-
-    tbl <- tbl %>%
-      mutate(y_wik = n_wik + alpha_k) %>%
-      add_count(.topic, .feature, wt = y_wik, name = "y_wk") %>%
-      add_count(.topic, .group, wt = y_wik, name = "n_ik") %>%
-      add_count(.topic, wt = y_wik, name = "n_k") %>%
-      mutate(omega_wik = y_wik / (n_ik - y_wik),
-             omega_wk = y_wk / (n_k - y_wk),
-             delta_wik = log(omega_wik) - log(omega_wk),
-             sigma2_wik = 1/y_wik + 1/y_wk,
-             zeta_wik = delta_wik / sqrt(sigma2_wik)) %>%
-      filter(n_wik > 0) %>%
-      rename(log_odds_weighted = zeta_wik,
-             log_odds = delta_wik,
-             variance = sigma2_wik) %>%
-      select(-.group, -.feature, -n_wik, -.topic,
-             -y_wik, -y_wk, -n_ik, -n_wjk, -n_k,
-             -alpha_k, -omega_wik, -omega_wk) %>%
-      mutate(odds = exp(log_odds),
-             prob = odds/(1 + odds))
-
-  } else if (.compare == "groups") {
-
-    tbl <- tbl %>%
-      mutate(y_wik = n_wik + alpha_k,
-             y_wjk = n_wjk + alpha_k) %>%
-      add_count(.topic, .group, wt = y_wik, name = "n_ik") %>%
-      add_count(.topic, .group, wt = y_wjk, name = "n_jk") %>%
-      mutate(omega_wik = y_wik / (n_ik - y_wik),
-             omega_wjk = y_wjk / (n_jk - y_wjk),
-             delta_wik = log(omega_wik) - log(omega_wjk),
-             sigma2_wik = 1/y_wik + 1/y_wjk,
-             zeta_wik = delta_wik / sqrt(sigma2_wik)) %>%
-      filter(n_wik > 0) %>%
-      rename(log_odds_weighted = zeta_wik,
-             log_odds = delta_wik,
-             variance = sigma2_wik) %>%
-      select(-.group, -.feature, -n_wik, -.topic,
-             -y_wik, -y_wjk, -n_ik, -n_jk, -n_wjk,
-             -alpha_k, -omega_wik, -omega_wjk) %>%
-      mutate(odds = exp(log_odds),
-             prob = odds/(1 + odds))
-
-  } else {
-
-    stop("Comparisons can only be different from dataset or comparison to other groups")
-
-  }
-
-  if (!.unweighted) {tbl$log_odds <- NULL}
-  if (!.variance) {tbl$variance <- NULL}
-  if (!.odds) {tbl$odds <- NULL}
-  if (!.prob) {tbl$prob <- NULL}
-
-  if (!is_empty(grouping)) {tbl <- group_by(tbl, !!sym(grouping))}
-
-  return(tbl)
-
-}
-
-# empirical is across topics
-# more closely follow nomenclature from paper
-
-#' @export
-add_blow_test <- function (tbl,
-                           group,
-                           feature,
-                           n,
-                           topic = NULL,
-                           .prior = c("empirical", "uninformative", "tidylo"),
-                           .k_prior = 0.1,
-                           .alpha_prior = 1,
-                           .compare = c("dataset", "groups"),
-                           .complete = FALSE,
-                           .unweighted = TRUE,
-                           .variance = TRUE,
-                           .odds = FALSE,
-                           .prob = FALSE) {
 
   .compare <- match.arg(.compare)
   .prior <- match.arg(.prior)
@@ -206,24 +80,33 @@ add_blow_test <- function (tbl,
 
   if (!missing(topic)) {tbl$.topic <- pull(tbl, {{topic}})}
 
+  # include option for average topic-group count?
   if (.prior == "empirical") {
 
     tbl <- tbl %>%
       add_tally(wt = y_wik, name = "total_cnt") %>%
       add_count(.feature, wt = y_wik, name = "feature_cnt") %>%
-      add_count(.group, wt = y_wik, name = "group_cnt") %>%
       add_count(.topic, .group, wt = y_wik, name = "topic_group_cnt") %>%
       add_count(.topic, .feature, wt = y_wik, name = "topic_feature_cnt") %>%
       mutate(alpha_wik = feature_cnt / total_cnt * topic_group_cnt * .k_prior,
              y_wjk = topic_feature_cnt - y_wik) %>%
-      select(-total_cnt, -feature_cnt, -group_cnt,
-             -topic_feature_cnt, -topic_group_cnt)
+      select(-total_cnt, -feature_cnt, -topic_feature_cnt, -topic_group_cnt)
 
   } else if (.prior == "uninformative") {
 
+    if (!is.null(.alpha_prior)) {
+
+      .alpha <- .alpha_prior
+
+    } else {
+
+      .alpha <- sum(tbl$y_wik) / n_distinct(tbl$.feature)
+
+    }
+
     tbl <- tbl %>%
       add_count(.topic, .feature, wt = y_wik, name = "feature_cnt") %>%
-      mutate(alpha_wik = .alpha_prior,
+      mutate(alpha_wik = .alpha,
              y_wjk = feature_cnt - y_wik) %>%
       select(-feature_cnt)
 
@@ -231,13 +114,12 @@ add_blow_test <- function (tbl,
 
     tbl <- tbl %>%
       add_count(.topic, .feature, wt = y_wik, name = "feature_cnt") %>%
-      mutate(alpha_wik = feature_cnt * k_prior,
+      mutate(alpha_wik = feature_cnt * .k_prior,
              y_wjk = alpha_wik - y_wik) %>%
       select(-feature_cnt)
 
   }
 
-  # rename to y_kwi, etc. to match paper
   if (.compare == "dataset") {
 
     tbl <- tbl %>%

@@ -13,10 +13,10 @@ add_blow(
   feature,
   n,
   topic = NULL,
-  .prior = c("empirical", "uninformed", "tidylo"),
+  .prior = c("empirical", "uninformative", "tidylo"),
+  .compare = c("dataset", "groups"),
   .k_prior = 0.1,
   .alpha_prior = 1,
-  .compare = c("dataset", "groups"),
   .complete = FALSE,
   .unweighted = TRUE,
   .variance = TRUE,
@@ -41,12 +41,12 @@ bigrams with text data}
 uninformed with set alpha (uninformed), or total frequency count from tidylo
 implementation}
 
+\item{.compare}{Whether to compare group-feature to entire dataset or
+against all other groups}
+
 \item{.k_prior}{Penalty term for informed prior}
 
 \item{.alpha_prior}{Frequency of each feature for uninformed prior}
-
-\item{.compare}{Whether to compare group-feature to entire dataset or
-against all other groups}
 
 \item{.complete}{Whether to complete all topic-group-feature combinations}
 
