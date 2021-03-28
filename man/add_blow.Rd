@@ -21,7 +21,8 @@ add_blow(
   .log_odds = FALSE,
   .variance = FALSE,
   .odds = FALSE,
-  .prob = FALSE
+  .prob = FALSE,
+  .sort = FALSE
 )
 }
 \arguments{
@@ -57,6 +58,8 @@ against all other groups}
 \item{.odds}{Whether to include odds of seeing feature within group}
 
 \item{.prob}{Whether to include probability for feature within group}
+
+\item{.sort}{Whether to sort by largest zeta}
 }
 \description{
 Calculate and bind the log odds ratio, weighted by a Dirichlet

@@ -25,6 +25,7 @@
 #' @param .variance Whether to include variance of feature
 #' @param .odds Whether to include odds of seeing feature within group
 #' @param .prob Whether to include probability for feature within group
+#' @param .sort Whether to sort by largest zeta
 #'
 #' @details The arguments \code{group}, \code{feature}, \code{n}, and \code{topic}
 #' are passed by expression and support \link[rlang]{quasiquotation};
@@ -53,7 +54,8 @@ add_blow <- function (tbl,
                       .log_odds = FALSE,
                       .variance = FALSE,
                       .odds = FALSE,
-                      .prob = FALSE) {
+                      .prob = FALSE,
+                      .sort = FALSE) {
 
   .compare <- match.arg(.compare)
   .prior <- match.arg(.prior)
@@ -177,6 +179,8 @@ add_blow <- function (tbl,
   if (!.variance) {tbl$variance <- NULL}
   if (!.odds) {tbl$odds <- NULL}
   if (!.prob) {tbl$prob <- NULL}
+
+  if (.sort) {tbl <- arrange(tbl, -zeta)}
 
   if (!is_empty(grouping)) {tbl <- group_by(tbl, !!sym(grouping))}
 
