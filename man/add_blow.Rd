@@ -18,7 +18,7 @@ add_blow(
   .k_prior = 0.1,
   .alpha_prior = 1,
   .complete = FALSE,
-  .unweighted = FALSE,
+  .log_odds = FALSE,
   .variance = FALSE,
   .odds = FALSE,
   .prob = FALSE
@@ -50,7 +50,7 @@ against all other groups}
 
 \item{.complete}{Whether to complete all topic-group-feature combinations}
 
-\item{.unweighted}{Whether to include point estimate log odds}
+\item{.log_odds}{Whether to include point estimate log odds}
 
 \item{.variance}{Whether to include variance of feature}
 
@@ -61,8 +61,9 @@ against all other groups}
 \description{
 Calculate and bind the log odds ratio, weighted by a Dirichlet
 prior, of a tidy dataset to the dataset itself. The weighted log odds ratio
-is added as a column. This functions supports non-standard evaluation through
-the tidyeval framework.
+is added as a column named \code{zeta}, with optional columns
+\code{log_odds}, \code{variance}, \code{odds}, and \code{prob}.
+This functions supports non-standard evaluation through the tidyeval framework.
 }
 \details{
 The arguments \code{group}, \code{feature}, \code{n}, and \code{topic}

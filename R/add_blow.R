@@ -2,8 +2,9 @@
 #'
 #' Calculate and bind the log odds ratio, weighted by a Dirichlet
 #' prior, of a tidy dataset to the dataset itself. The weighted log odds ratio
-#' is added as a column. This functions supports non-standard evaluation through
-#' the tidyeval framework.
+#' is added as a column named \code{zeta}, with optional columns
+#' \code{log_odds}, \code{variance}, \code{odds}, and \code{prob}.
+#' This functions supports non-standard evaluation through the tidyeval framework.
 #'
 #' @param tbl A tidy dataset with one row per feature and set
 #' @param group Column of groups between which to compare features, such as
@@ -20,7 +21,7 @@
 #' @param .alpha_prior Frequency of each feature for uninformed prior
 #' @param .k_prior Penalty term for informed prior
 #' @param .complete Whether to complete all topic-group-feature combinations
-#' @param .unweighted Whether to include point estimate log odds
+#' @param .log_odds Whether to include point estimate log odds
 #' @param .variance Whether to include variance of feature
 #' @param .odds Whether to include odds of seeing feature within group
 #' @param .prob Whether to include probability for feature within group
@@ -49,7 +50,7 @@ add_blow <- function (tbl,
                       .k_prior = 0.1,
                       .alpha_prior = 1,
                       .complete = FALSE,
-                      .unweighted = FALSE,
+                      .log_odds = FALSE,
                       .variance = FALSE,
                       .odds = FALSE,
                       .prob = FALSE) {
@@ -172,7 +173,7 @@ add_blow <- function (tbl,
 
   }
 
-  if (!.unweighted) {tbl$log_odds <- NULL}
+  if (!.log_odds) {tbl$log_odds <- NULL}
   if (!.variance) {tbl$variance <- NULL}
   if (!.odds) {tbl$odds <- NULL}
   if (!.prob) {tbl$prob <- NULL}
