@@ -18,8 +18,8 @@ add_blow(
   .k_prior = 0.1,
   .alpha_prior = 1,
   .complete = FALSE,
-  .unweighted = TRUE,
-  .variance = TRUE,
+  .unweighted = FALSE,
+  .variance = FALSE,
   .odds = FALSE,
   .prob = FALSE
 )

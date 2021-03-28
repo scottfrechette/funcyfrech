@@ -39,9 +39,6 @@
 #' @importFrom dplyr count left_join mutate rename group_by ungroup group_vars
 #' @export
 
-# more closely follow nomenclature from paper
-# rename to y_kwi, etc. to match paper
-
 add_blow <- function (tbl,
                       group,
                       feature,
@@ -52,8 +49,8 @@ add_blow <- function (tbl,
                       .k_prior = 0.1,
                       .alpha_prior = 1,
                       .complete = FALSE,
-                      .unweighted = TRUE,
-                      .variance = TRUE,
+                      .unweighted = FALSE,
+                      .variance = FALSE,
                       .odds = FALSE,
                       .prob = FALSE) {
 
@@ -63,14 +60,14 @@ add_blow <- function (tbl,
   grouping <- group_vars(tbl)
   tbl <- ungroup(tbl)
 
-  tbl$y_wik <- pull(tbl, {{n}})
+  tbl$y_kwi <- pull(tbl, {{n}})
 
   if (.complete) {
 
     tbl <- tbl %>%
       tidyr::complete({{group}}, {{feature}},
-                      fill = list(y_wik = 0)) %>%
-      mutate({{n}} := y_wik)
+                      fill = list(y_kwi = 0)) %>%
+      mutate({{n}} := y_kwi)
 
   }
 
@@ -84,12 +81,12 @@ add_blow <- function (tbl,
   if (.prior == "empirical") {
 
     tbl <- tbl %>%
-      add_tally(wt = y_wik, name = "total_cnt") %>%
-      add_count(.feature, wt = y_wik, name = "feature_cnt") %>%
-      add_count(.topic, .group, wt = y_wik, name = "topic_group_cnt") %>%
-      add_count(.topic, .feature, wt = y_wik, name = "topic_feature_cnt") %>%
-      mutate(alpha_wik = feature_cnt / total_cnt * topic_group_cnt * .k_prior,
-             y_wjk = topic_feature_cnt - y_wik) %>%
+      add_tally(wt = y_kwi, name = "total_cnt") %>%
+      add_count(.feature, wt = y_kwi, name = "feature_cnt") %>%
+      add_count(.topic, .group, wt = y_kwi, name = "topic_group_cnt") %>%
+      add_count(.topic, .feature, wt = y_kwi, name = "topic_feature_cnt") %>%
+      mutate(alpha_kwi = feature_cnt / total_cnt * topic_group_cnt * .k_prior,
+             y_kwj = topic_feature_cnt - y_kwi) %>%
       select(-total_cnt, -feature_cnt, -topic_feature_cnt, -topic_group_cnt)
 
   } else if (.prior == "uninformative") {
@@ -100,22 +97,22 @@ add_blow <- function (tbl,
 
     } else {
 
-      .alpha <- sum(tbl$y_wik) / n_distinct(tbl$.feature)
+      .alpha <- sum(tbl$y_kwi) / n_distinct(tbl$.feature)
 
     }
 
     tbl <- tbl %>%
-      add_count(.topic, .feature, wt = y_wik, name = "feature_cnt") %>%
-      mutate(alpha_wik = .alpha,
-             y_wjk = feature_cnt - y_wik) %>%
+      add_count(.topic, .feature, wt = y_kwi, name = "feature_cnt") %>%
+      mutate(alpha_kwi = .alpha,
+             y_kwj = feature_cnt - y_kwi) %>%
       select(-feature_cnt)
 
   } else {
 
     tbl <- tbl %>%
-      add_count(.topic, .feature, wt = y_wik, name = "feature_cnt") %>%
-      mutate(alpha_wik = feature_cnt * .k_prior,
-             y_wjk = alpha_wik - y_wik) %>%
+      add_count(.topic, .feature, wt = y_kwi, name = "feature_cnt") %>%
+      mutate(alpha_kwi = feature_cnt * .k_prior,
+             y_kwj = alpha_kwi - y_kwi) %>%
       select(-feature_cnt)
 
   }
@@ -123,49 +120,49 @@ add_blow <- function (tbl,
   if (.compare == "dataset") {
 
     tbl <- tbl %>%
-      add_count(.topic, .feature, wt = y_wik, name = "y_wk") %>%
-      add_count(.topic, .feature, wt = alpha_wik, name = "alpha_wk") %>%
-      add_count(.topic, .group, wt = y_wik, name = "n_ik") %>%
-      add_count(.topic, .group, wt = alpha_wik, name = "alpha_ik") %>%
-      add_count(.topic, wt = y_wik, name = "n_k") %>%
-      add_count(.topic, wt = alpha_wik, name = "alpha_k") %>%
-      mutate(omega_wik = (y_wik + alpha_wik) / (n_ik + alpha_ik - y_wik - alpha_wik),
-             omega_wk = (y_wk + alpha_wk) / (n_k + alpha_k - y_wk - alpha_wk),
-             delta_wik = log(omega_wik) - log(omega_wk),
-             sigma2_wik = 1 / (y_wik + alpha_wik) + 1 / (n_ik + alpha_ik - y_wik - alpha_wik) +
-               1 / (y_wk + alpha_wk) + 1 / (n_k + alpha_k - y_wk - alpha_wk),
-             zeta_wik = delta_wik / sqrt(sigma2_wik)) %>%
-      filter(y_wik > 0) %>%
-      rename(log_odds = delta_wik,
-             variance = sigma2_wik,
-             zeta = zeta_wik) %>%
+      add_count(.topic, .feature, wt = y_kwi, name = "y_kw") %>%
+      add_count(.topic, .feature, wt = alpha_kwi, name = "alpha_kw") %>%
+      add_count(.topic, .group, wt = y_kwi, name = "n_ki") %>%
+      add_count(.topic, .group, wt = alpha_kwi, name = "alpha_k0i") %>%
+      add_count(.topic, wt = y_kwi, name = "n_k") %>%
+      add_count(.topic, wt = alpha_kwi, name = "alpha_k0") %>%
+      mutate(omega_kwi = (y_kwi + alpha_kwi) / (n_ki + alpha_k0i - y_kwi - alpha_kwi),
+             omega_kw = (y_kw + alpha_kw) / (n_k + alpha_k0 - y_kw - alpha_kw),
+             delta_kwi = log(omega_kwi) - log(omega_kw),
+             sigma2_kwi = 1 / (y_kwi + alpha_kwi) + 1 / (n_ki + alpha_k0i - y_kwi - alpha_kwi) +
+               1 / (y_kw + alpha_kw) + 1 / (n_k + alpha_k0- y_kw - alpha_kw),
+             zeta_kwi = delta_kwi / sqrt(sigma2_kwi)) %>%
+      filter(y_kwi > 0) %>%
+      rename(log_odds = delta_kwi,
+             variance = sigma2_kwi,
+             zeta = zeta_kwi) %>%
       select(-.group, -.feature, -.topic,
-             -y_wik, -y_wjk, -y_wk, -n_ik, -n_k,
-             -alpha_wik, -alpha_wk, -alpha_ik, -alpha_k,
-             -omega_wik, -omega_wk) %>%
+             -y_kwi, -y_kwj, -y_kw, -n_ki, -n_k,
+             -alpha_kwi, -alpha_kw, -alpha_k0i, -alpha_k0,
+             -omega_kwi, -omega_kw) %>%
       mutate(odds = exp(log_odds),
              prob = odds / (1 + odds))
 
   } else if (.compare == "groups") {
 
     tbl <- tbl %>%
-      add_count(.topic, .group, wt = y_wik, name = "n_ik") %>%
-      add_count(.topic, .group, wt = alpha_wik, name = "alpha_ik") %>%
-      add_count(.topic, .group, wt = y_wjk, name = "n_jk") %>%
-      mutate(omega_wik = (y_wik + alpha_wik) / (n_ik + alpha_ik - y_wik - alpha_wik),
-             omega_wjk = (y_wjk + alpha_wik) / (n_jk + alpha_ik - y_wjk - alpha_wik),
-             delta_wik = log(omega_wik) - log(omega_wjk),
-             sigma2_wik = 1 / (y_wik + alpha_wik) + 1 / (n_ik + alpha_ik - y_wik - alpha_wik) +
-               1 / (y_wjk + alpha_wik) + 1 / (n_jk + alpha_ik - y_wjk - alpha_wik),
-             zeta_wik = delta_wik / sqrt(sigma2_wik)) %>%
-      filter(y_wik > 0) %>%
-      rename(log_odds = delta_wik,
-             variance = sigma2_wik,
-             zeta = zeta_wik) %>%
+      add_count(.topic, .group, wt = y_kwi, name = "n_ki") %>%
+      add_count(.topic, .group, wt = alpha_kwi, name = "alpha_k0i") %>%
+      add_count(.topic, .group, wt = y_kwj, name = "n_kj") %>%
+      mutate(omega_kwi = (y_kwi + alpha_kwi) / (n_ki + alpha_k0i - y_kwi - alpha_kwi),
+             omega_kwj = (y_kwj + alpha_kwi) / (n_kj + alpha_k0i - y_kwj - alpha_kwi),
+             delta_kwi = log(omega_kwi) - log(omega_kwj),
+             sigma2_kwi = 1 / (y_kwi + alpha_kwi) + 1 / (n_ki + alpha_k0i - y_kwi - alpha_kwi) +
+               1 / (y_kwj + alpha_kwi) + 1 / (n_kj + alpha_k0i - y_kwj - alpha_kwi),
+             zeta_kwi = delta_kwi / sqrt(sigma2_kwi)) %>%
+      filter(y_kwi > 0) %>%
+      rename(log_odds = delta_kwi,
+             variance = sigma2_kwi,
+             zeta = zeta_kwi) %>%
       select(-.group, -.feature, -.topic,
-             -y_wik, -y_wjk, -y_wjk, -n_ik, -n_jk,
-             -alpha_wik, -alpha_ik,
-             -omega_wik, -omega_wjk) %>%
+             -y_kwi, -y_kwj, -y_kwj, -n_ki, -n_kj,
+             -alpha_kwi, -alpha_k0i,
+             -omega_kwi, -omega_kwj) %>%
       mutate(odds = exp(log_odds),
              prob = odds / (1 + odds))
 
