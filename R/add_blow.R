@@ -187,3 +187,81 @@ add_blow <- function (tbl,
   return(tbl)
 
 }
+
+#' @export
+add_rolling_blow <- function (tbl,
+                              group,
+                              feature,
+                              n,
+                              date,
+                              window = NULL,
+                              ratio = NULL,
+                              topic = NULL,
+                              .prior = c("empirical", "uninformative", "tidylo"),
+                              .compare = c("dataset", "groups"),
+                              .k_prior = 0.1,
+                              .alpha_prior = 1,
+                              .complete = FALSE,
+                              .log_odds = FALSE,
+                              .variance = FALSE,
+                              .odds = FALSE,
+                              .prob = FALSE,
+                              .sort = FALSE) {
+
+  if (is.null(window) & is.null(ratio)) stop("Please select either window or ratio")
+
+  if (!is.null(window)) ratio <- 2 / (window + 1)
+
+  tbl$y_kwi <- pull(tbl, {{n}})
+  tbl$.dt <- pull(tbl, {{date}})
+  tbl$.group <- pull(tbl, {{group}})
+  tbl$.feature <- pull(tbl, {{feature}})
+  tbl$.topic <- "none"
+
+  if (!missing(topic)) {tbl$.topic <- pull(tbl, {{topic}})}
+
+  tbl %>%
+    arrange(.dt) %>%
+    group_by(.group, .feature) %>%
+    mutate(ema = .ema(y_kwi, ratio = ratio)) %>%
+    ungroup() %>%
+    nest(data = -.dt) %>%
+    mutate(data = map(data,
+                      ~add_blow(.x, .group, .feature, ema,
+                                .topic, .prior, .compare, .k_prior,
+                                .alpha_prior, .complete, .log_odds,
+                                .variance, .odds, .prob, .sort))) %>%
+    unnest(data)
+
+}
+
+#' @export
+plot_rolling_blow <- function(tbl, date,
+                              group, group_filter,
+                              feature, feature_filter) {
+
+  tbl$.dt <- pull(tbl, {{date}})
+  tbl$.group <- pull(tbl, {{group}})
+  tbl$.feature <- pull(tbl, {{feature}})
+
+  tbl %>%
+    filter(.group == group_filter,
+           .feature == feature_filter) %>%
+    ggplot(aes(.dt, zeta)) +
+    geom_rect(xmin = -Inf, xmax = Inf, ymin = -1.96, ymax = 1.96, fill = 'grey75') +
+    geom_line() +
+    ggthemes::theme_tufte() +
+    labs(x = NULL)
+
+}
+
+.ema <- function (x, window = NULL, ratio = NULL) {
+
+  if (is.null(window) & is.null(ratio)) stop("Please select either window or ratio")
+
+  if (!is.null(window)) ratio <- 2 / (window + 1)
+
+  c(stats::filter(x = x * ratio, filter = 1 - ratio, method = "recursive", init = x[1]))
+
+}
+

@@ -16,12 +16,18 @@
 #' @param scales scales passed to facet_wrap
 #' @export
 
-geom_trend <- function(tbl, .date, .n, ...,
+geom_trend <- function(tbl,
+                       .date,
+                       .n,
+                       ...,
                        percent = FALSE,
-                       alpha = 0.2, se = FALSE,
-                       x_lab = NULL, y_lab = "Count",
+                       alpha = 0.2,
+                       se = FALSE,
+                       x_lab = NULL,
+                       y_lab = "Count",
                        title = NULL,
-                       facet = NULL, scales = "free_y") {
+                       facet = NULL,
+                       scales = "free_y") {
 
   p <- tbl %>%
     ggplot(aes({{.date}}, {{.n}},

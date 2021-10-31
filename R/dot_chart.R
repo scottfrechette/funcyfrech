@@ -9,7 +9,9 @@
 #' @param lollipop Create add line to create lollipop chart
 #' @export
 
-dot_chart <- function(df, key, n,
+dot_chart <- function(df,
+                      key,
+                      n,
                       top = 25,
                       facet = NULL,
                       lollipop = FALSE) {

@@ -1,4 +1,4 @@
-#' Generate summary statistics on data
+#' Standardize data to z-score
 #'
 #' @name standardize
 #' @param x A numeric vector
@@ -10,7 +10,7 @@ standardize <- function(x) {
 
 }
 
-#' Generate summary statistics on data
+#' Normalize data to 0-1 scale
 #'
 #' @name normalize
 #' @param x A numeric vector

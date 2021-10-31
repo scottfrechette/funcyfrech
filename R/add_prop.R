@@ -15,9 +15,14 @@
 #' @import dplyr
 #' @export
 
-add_prop <- function(df, n, ..., sort = TRUE,
-                     round = FALSE, denom = "sum",
-                     pct_formatting = FALSE, cum_prop = FALSE) {
+add_prop <- function(df,
+                     n,
+                     ...,
+                     sort = TRUE,
+                     round = FALSE,
+                     denom = "sum",
+                     pct_formatting = FALSE,
+                     cum_prop = FALSE) {
 
   col_quos <- quos(...)
 

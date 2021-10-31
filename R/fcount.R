@@ -14,9 +14,16 @@
 #' @import dplyr
 #' @export
 
-fcount <- function(df, ..., sort = TRUE, pct = TRUE,
-                   round = FALSE, denom = "sum", pct_formatting = FALSE,
-                   cum_sum = FALSE, cum_prop = FALSE, head = NULL) {
+fcount <- function(df,
+                   ...,
+                   sort = TRUE,
+                   pct = TRUE,
+                   round = FALSE,
+                   denom = "sum",
+                   pct_formatting = FALSE,
+                   cum_sum = FALSE,
+                   cum_prop = FALSE,
+                   head = NULL) {
 
   col_quos <- quos(...)
 

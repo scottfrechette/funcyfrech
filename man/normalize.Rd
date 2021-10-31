@@ -2,7 +2,7 @@
 % Please edit documentation in R/scale_data.R
 \name{normalize}
 \alias{normalize}
-\title{Generate summary statistics on data}
+\title{Normalize data to 0-1 scale}
 \usage{
 normalize(x)
 }
@@ -10,5 +10,5 @@ normalize(x)
 \item{x}{A numeric vector}
 }
 \description{
-Generate summary statistics on data
+Normalize data to 0-1 scale
 }

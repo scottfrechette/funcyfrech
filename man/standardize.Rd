@@ -2,7 +2,7 @@
 % Please edit documentation in R/scale_data.R
 \name{standardize}
 \alias{standardize}
-\title{Generate summary statistics on data}
+\title{Standardize data to z-score}
 \usage{
 standardize(x)
 }
@@ -10,5 +10,5 @@ standardize(x)
 \item{x}{A numeric vector}
 }
 \description{
-Generate summary statistics on data
+Standardize data to z-score
 }

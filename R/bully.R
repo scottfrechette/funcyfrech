@@ -10,9 +10,12 @@
 #' @import dplyr
 #' @export
 
-bully <- function(df, col, ...,
+bully <- function(df,
+                  col,
+                  ...,
                   name = "mean",
-                  na.rm = TRUE, sort = TRUE) {
+                  na.rm = TRUE,
+                  sort = TRUE) {
 
   col_quo <- enquo(col)
   group_quos <- quos(...)
