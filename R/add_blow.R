@@ -200,13 +200,7 @@ add_rolling_blow <- function (tbl,
                               .prior = c("empirical", "uninformative", "tidylo"),
                               .compare = c("dataset", "groups"),
                               .k_prior = 0.1,
-                              .alpha_prior = 1,
-                              .complete = FALSE,
-                              .log_odds = FALSE,
-                              .variance = FALSE,
-                              .odds = FALSE,
-                              .prob = FALSE,
-                              .sort = FALSE) {
+                              .alpha_prior = 1) {
 
   if (is.null(window) & is.null(ratio)) stop("Please select either window or ratio")
 
@@ -228,9 +222,8 @@ add_rolling_blow <- function (tbl,
     nest(data = -.dt) %>%
     mutate(data = map(data,
                       ~add_blow(.x, .group, .feature, ema,
-                                .topic, .prior, .compare, .k_prior,
-                                .alpha_prior, .complete, .log_odds,
-                                .variance, .odds, .prob, .sort))) %>%
+                                .topic, .prior, .compare,
+                                .k_prior, .alpha_prior))) %>%
     unnest(data)
 
 }
