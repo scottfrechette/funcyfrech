@@ -5,7 +5,7 @@
 \title{Trend chart}
 \usage{
 geom_trend(
-  tbl,
+  df,
   .date,
   .n,
   ...,
@@ -20,7 +20,7 @@ geom_trend(
 )
 }
 \arguments{
-\item{tbl}{A tidy dataset with one count per date per group}
+\item{df}{A tidy dataset with one count per date per group}
 
 \item{.date}{Date column}
 

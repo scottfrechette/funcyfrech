@@ -4,10 +4,10 @@
 \alias{str_filter}
 \title{Filter based on selected text}
 \usage{
-str_filter(.data, string, pattern)
+str_filter(df, string, pattern)
 }
 \arguments{
-\item{.data}{A tibble, or an object that can be coerced into a tibble.}
+\item{df}{A tibble, or an object that can be coerced into a tibble.}
 
 \item{string}{Input vector. Either a character vector, or something coercible to one.}
 

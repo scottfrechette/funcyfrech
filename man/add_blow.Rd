@@ -8,7 +8,7 @@
 }
 \usage{
 add_blow(
-  tbl,
+  df,
   group,
   feature,
   n,
@@ -26,7 +26,7 @@ add_blow(
 )
 }
 \arguments{
-\item{tbl}{A tidy dataset with one row per feature and set}
+\item{df}{A tidy dataset with one row per feature and set}
 
 \item{group}{Column of groups between which to compare features, such as
 documents for text data}

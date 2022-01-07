@@ -4,10 +4,10 @@
 \alias{top_n_group}
 \title{Select top (or bottom) n rows for each group (by value)}
 \usage{
-top_n_group(x, n, wt, ...)
+top_n_group(df, n, wt, ...)
 }
 \arguments{
-\item{x}{A tibble to filter}
+\item{df}{A tibble to filter}
 
 \item{n}{number of rows to return for each group}
 
