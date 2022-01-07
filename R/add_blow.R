@@ -6,7 +6,7 @@
 #' \code{log_odds}, \code{variance}, \code{odds}, and \code{prob}.
 #' This functions supports non-standard evaluation through the tidyeval framework.
 #'
-#' @param tbl A tidy dataset with one row per feature and set
+#' @param df A tidy dataset with one row per feature and set
 #' @param group Column of groups between which to compare features, such as
 #' documents for text data
 #' @param feature Column of features for identifying differences, such as words or
@@ -41,7 +41,7 @@
 #' @importFrom dplyr count left_join mutate rename group_by ungroup group_vars
 #' @export
 
-add_blow <- function (tbl,
+add_blow <- function (df,
                       group,
                       feature,
                       n,
@@ -60,30 +60,30 @@ add_blow <- function (tbl,
   .compare <- match.arg(.compare)
   .prior <- match.arg(.prior)
 
-  grouping <- group_vars(tbl)
-  tbl <- ungroup(tbl)
+  grouping <- group_vars(df)
+  df <- ungroup(df)
 
-  tbl$y_kwi <- pull(tbl, {{n}})
+  df$y_kwi <- pull(df, {{n}})
 
   if (.complete) {
 
-    tbl <- tbl %>%
+    df <- df %>%
       tidyr::complete({{group}}, {{feature}},
                       fill = list(y_kwi = 0)) %>%
       mutate({{n}} := y_kwi)
 
   }
 
-  tbl$.group <- pull(tbl, {{group}})
-  tbl$.feature <- pull(tbl, {{feature}})
-  tbl$.topic <- "none"
+  df$.group <- pull(df, {{group}})
+  df$.feature <- pull(df, {{feature}})
+  df$.topic <- "none"
 
-  if (!missing(topic)) {tbl$.topic <- pull(tbl, {{topic}})}
+  if (!missing(topic)) {df$.topic <- pull(df, {{topic}})}
 
   # include option for average topic-group count?
   if (.prior == "empirical") {
 
-    tbl <- tbl %>%
+    df <- df %>%
       add_tally(wt = y_kwi, name = "total_cnt") %>%
       add_count(.feature, wt = y_kwi, name = "feature_cnt") %>%
       add_count(.topic, .group, wt = y_kwi, name = "topic_group_cnt") %>%
@@ -100,11 +100,11 @@ add_blow <- function (tbl,
 
     } else {
 
-      .alpha <- sum(tbl$y_kwi) / n_distinct(tbl$.feature)
+      .alpha <- sum(df$y_kwi) / n_distinct(df$.feature)
 
     }
 
-    tbl <- tbl %>%
+    df <- df %>%
       add_count(.topic, .feature, wt = y_kwi, name = "feature_cnt") %>%
       mutate(alpha_kwi = .alpha,
              y_kwj = feature_cnt - y_kwi) %>%
@@ -112,7 +112,7 @@ add_blow <- function (tbl,
 
   } else {
 
-    tbl <- tbl %>%
+    df <- df %>%
       add_count(.topic, .feature, wt = y_kwi, name = "feature_cnt") %>%
       mutate(alpha_kwi = feature_cnt * .k_prior,
              y_kwj = alpha_kwi - y_kwi) %>%
@@ -122,7 +122,7 @@ add_blow <- function (tbl,
 
   if (.compare == "dataset") {
 
-    tbl <- tbl %>%
+    df <- df %>%
       add_count(.topic, .feature, wt = y_kwi, name = "y_kw") %>%
       add_count(.topic, .feature, wt = alpha_kwi, name = "alpha_kw") %>%
       add_count(.topic, .group, wt = y_kwi, name = "n_ki") %>%
@@ -148,7 +148,7 @@ add_blow <- function (tbl,
 
   } else if (.compare == "groups") {
 
-    tbl <- tbl %>%
+    df <- df %>%
       add_count(.topic, .group, wt = y_kwi, name = "n_ki") %>%
       add_count(.topic, .group, wt = alpha_kwi, name = "alpha_k0i") %>%
       add_count(.topic, .group, wt = y_kwj, name = "n_kj") %>%
@@ -175,21 +175,21 @@ add_blow <- function (tbl,
 
   }
 
-  if (!.log_odds) {tbl$log_odds <- NULL}
-  if (!.variance) {tbl$variance <- NULL}
-  if (!.odds) {tbl$odds <- NULL}
-  if (!.prob) {tbl$prob <- NULL}
+  if (!.log_odds) {df$log_odds <- NULL}
+  if (!.variance) {df$variance <- NULL}
+  if (!.odds) {df$odds <- NULL}
+  if (!.prob) {df$prob <- NULL}
 
-  if (.sort) {tbl <- arrange(tbl, -zeta)}
+  if (.sort) {df <- arrange(df, -zeta)}
 
-  if (!is_empty(grouping)) {tbl <- group_by(tbl, !!sym(grouping))}
+  if (!is_empty(grouping)) {df <- group_by(df, !!sym(grouping))}
 
-  return(tbl)
+  return(df)
 
 }
 
 #' @export
-add_rolling_blow <- function (tbl,
+add_rolling_blow <- function (df,
                               group,
                               feature,
                               n,
@@ -206,15 +206,15 @@ add_rolling_blow <- function (tbl,
 
   if (!is.null(window)) ratio <- 2 / (window + 1)
 
-  tbl$y_kwi <- pull(tbl, {{n}})
-  tbl$.dt <- pull(tbl, {{date}})
-  tbl$.group <- pull(tbl, {{group}})
-  tbl$.feature <- pull(tbl, {{feature}})
-  tbl$.topic <- "none"
+  df$y_kwi <- pull(df, {{n}})
+  df$.dt <- pull(df, {{date}})
+  df$.group <- pull(df, {{group}})
+  df$.feature <- pull(df, {{feature}})
+  df$.topic <- "none"
 
-  if (!missing(topic)) {tbl$.topic <- pull(tbl, {{topic}})}
+  if (!missing(topic)) {df$.topic <- pull(df, {{topic}})}
 
-  tbl %>%
+  df %>%
     arrange(.dt) %>%
     group_by(.group, .feature) %>%
     mutate(ema = .ema(y_kwi, ratio = ratio)) %>%
@@ -229,15 +229,15 @@ add_rolling_blow <- function (tbl,
 }
 
 #' @export
-plot_rolling_blow <- function(tbl, date,
+plot_rolling_blow <- function(df, date,
                               group, group_filter,
                               feature, feature_filter) {
 
-  tbl$.dt <- pull(tbl, {{date}})
-  tbl$.group <- pull(tbl, {{group}})
-  tbl$.feature <- pull(tbl, {{feature}})
+  df$.dt <- pull(df, {{date}})
+  df$.group <- pull(df, {{group}})
+  df$.feature <- pull(df, {{feature}})
 
-  tbl %>%
+  df %>%
     filter(.group == group_filter,
            .feature == feature_filter) %>%
     ggplot(aes(.dt, zeta)) +

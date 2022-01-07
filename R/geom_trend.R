@@ -2,7 +2,7 @@
 #'
 #' Create trend chart with points and smoothed line
 #'
-#' @param tbl A tidy dataset with one count per date per group
+#' @param df A tidy dataset with one count per date per group
 #' @param .date Date column
 #' @param .n Count or Percent column
 #' @param ... additional data to pass to ggplot
@@ -16,7 +16,7 @@
 #' @param scales scales passed to facet_wrap
 #' @export
 
-geom_trend <- function(tbl,
+geom_trend <- function(df,
                        .date,
                        .n,
                        ...,
@@ -29,7 +29,7 @@ geom_trend <- function(tbl,
                        facet = NULL,
                        scales = "free_y") {
 
-  p <- tbl %>%
+  p <- df %>%
     ggplot(aes({{.date}}, {{.n}},
                ...)) +
     geom_point(alpha = alpha) +
