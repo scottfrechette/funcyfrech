@@ -1,9 +1,9 @@
 Package: funcyfrech
 Type: Package
 Title: Frechette Functions
-Version: 0.1.1
+Version: 0.0.9999
 Author: Scott Frechette
-Maintainer: Scott Frechette <scott.frechette@regions.com>
+Maintainer: Scott Frechette <scottfrechette@gmail.com>
 Description: Random functions I like to use
 License: MIT
 Encoding: UTF-8
