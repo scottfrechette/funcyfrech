@@ -7,7 +7,9 @@
 
 p_to_z <- function(p, neg_estimate = F, two_tailed = T) {
 
-  qnorm(p / (1 + two_tailed), lower.tail = neg_estimate)
+  z <- qnorm(p / (1 + two_tailed))
+
+  if_else(neg_estimate, z, -z)
 
 }
 
