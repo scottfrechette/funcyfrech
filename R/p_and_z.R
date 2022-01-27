@@ -1,4 +1,4 @@
-#' Calculate gamma-poisson posterior
+#' Convert p-value to z-score
 #'
 #' @param p Vector of p-values
 #' @param neg_estimate Is estimated value negative?
@@ -13,7 +13,7 @@ p_to_z <- function(p, neg_estimate = F, two_tailed = T) {
 
 }
 
-#' Calculate gamma-poisson posterior
+#' Convert z-score to p-value
 #'
 #' @param z Vector of z-values
 #' @param two_tailed Was two-tailed test used?

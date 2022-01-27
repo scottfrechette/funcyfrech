@@ -2,7 +2,7 @@
 % Please edit documentation in R/p_and_z.R
 \name{z_to_p}
 \alias{z_to_p}
-\title{Calculate gamma-poisson posterior}
+\title{Convert z-score to p-value}
 \usage{
 z_to_p(z, two_tailed = T)
 }
@@ -12,5 +12,5 @@ z_to_p(z, two_tailed = T)
 \item{two_tailed}{Was two-tailed test used?}
 }
 \description{
-Calculate gamma-poisson posterior
+Convert z-score to p-value
 }
