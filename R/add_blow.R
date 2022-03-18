@@ -224,7 +224,8 @@ add_rolling_blow <- function (df,
                       ~add_blow(.x, .group, .feature, ema,
                                 .topic, .prior, .compare,
                                 .k_prior, .alpha_prior))) %>%
-    unnest(data)
+    unnest(data) %>%
+    select(-.dt, -ema)
 
 }
 
