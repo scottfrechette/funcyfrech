@@ -22,7 +22,7 @@
 #' @param .k_prior Penalty term for informed prior
 #' @param .complete Whether to complete all topic-group-feature combinations
 #' @param .log_odds Whether to include point estimate log odds
-#' @param .variance Whether to include variance of feature
+#' @param .se Whether to include standard error of estimate
 #' @param .odds Whether to include odds of seeing feature within group
 #' @param .prob Whether to include probability for feature within group
 #' @param .sort Whether to sort by largest zeta
@@ -52,7 +52,7 @@ add_blow <- function (df,
                       .alpha_prior = 1,
                       .complete = FALSE,
                       .log_odds = FALSE,
-                      .variance = FALSE,
+                      .se = FALSE,
                       .odds = FALSE,
                       .prob = FALSE,
                       .sort = FALSE) {
@@ -114,7 +114,7 @@ add_blow <- function (df,
 
     df <- df %>%
       add_count(.topic, .feature, wt = y_kwi, name = "feature_cnt") %>%
-      mutate(alpha_kwi = feature_cnt * .k_prior,
+      mutate(alpha_kwi = feature_cnt, #* .k_prior,
              y_kwj = alpha_kwi - y_kwi) %>%
       select(-feature_cnt)
 
@@ -132,12 +132,12 @@ add_blow <- function (df,
       mutate(omega_kwi = (y_kwi + alpha_kwi) / (n_ki + alpha_k0i - y_kwi - alpha_kwi),
              omega_kw = (y_kw + alpha_kw) / (n_k + alpha_k0 - y_kw - alpha_kw),
              delta_kwi = log(omega_kwi) - log(omega_kw),
-             sigma2_kwi = 1 / (y_kwi + alpha_kwi) + 1 / (n_ki + alpha_k0i - y_kwi - alpha_kwi) +
-               1 / (y_kw + alpha_kw) + 1 / (n_k + alpha_k0- y_kw - alpha_kw),
-             zeta_kwi = delta_kwi / sqrt(sigma2_kwi)) %>%
+             sigma_kwi = sqrt(1 / (y_kwi + alpha_kwi) + 1 / (n_ki + alpha_k0i - y_kwi - alpha_kwi) +
+               1 / (y_kw + alpha_kw) + 1 / (n_k + alpha_k0- y_kw - alpha_kw)),
+             zeta_kwi = delta_kwi / sigma_kwi) %>%
       filter(y_kwi > 0) %>%
       rename(log_odds = delta_kwi,
-             variance = sigma2_kwi,
+             se = sigma_kwi,
              zeta = zeta_kwi) %>%
       select(-.group, -.feature, -.topic,
              -y_kwi, -y_kwj, -y_kw, -n_ki, -n_k,
@@ -155,12 +155,12 @@ add_blow <- function (df,
       mutate(omega_kwi = (y_kwi + alpha_kwi) / (n_ki + alpha_k0i - y_kwi - alpha_kwi),
              omega_kwj = (y_kwj + alpha_kwi) / (n_kj + alpha_k0i - y_kwj - alpha_kwi),
              delta_kwi = log(omega_kwi) - log(omega_kwj),
-             sigma2_kwi = 1 / (y_kwi + alpha_kwi) + 1 / (n_ki + alpha_k0i - y_kwi - alpha_kwi) +
-               1 / (y_kwj + alpha_kwi) + 1 / (n_kj + alpha_k0i - y_kwj - alpha_kwi),
-             zeta_kwi = delta_kwi / sqrt(sigma2_kwi)) %>%
+             sigma_kwi = sqrt(1 / (y_kwi + alpha_kwi) + 1 / (n_ki + alpha_k0i - y_kwi - alpha_kwi) +
+               1 / (y_kwj + alpha_kwi) + 1 / (n_kj + alpha_k0i - y_kwj - alpha_kwi)),
+             zeta_kwi = delta_kwi / sigma_kwi) %>%
       filter(y_kwi > 0) %>%
       rename(log_odds = delta_kwi,
-             variance = sigma2_kwi,
+             se = sigma_kwi,
              zeta = zeta_kwi) %>%
       select(-.group, -.feature, -.topic,
              -y_kwi, -y_kwj, -y_kwj, -n_ki, -n_kj,
@@ -176,7 +176,7 @@ add_blow <- function (df,
   }
 
   if (!.log_odds) {df$log_odds <- NULL}
-  if (!.variance) {df$variance <- NULL}
+  if (!.se) {df$se <- NULL}
   if (!.odds) {df$odds <- NULL}
   if (!.prob) {df$prob <- NULL}
 

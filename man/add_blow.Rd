@@ -19,7 +19,7 @@ add_blow(
   .alpha_prior = 1,
   .complete = FALSE,
   .log_odds = FALSE,
-  .variance = FALSE,
+  .se = FALSE,
   .odds = FALSE,
   .prob = FALSE,
   .sort = FALSE
@@ -53,7 +53,7 @@ against all other groups}
 
 \item{.log_odds}{Whether to include point estimate log odds}
 
-\item{.variance}{Whether to include variance of feature}
+\item{.se}{Whether to include standard error of estimate}
 
 \item{.odds}{Whether to include odds of seeing feature within group}
 
