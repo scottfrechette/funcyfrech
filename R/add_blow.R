@@ -48,9 +48,8 @@ add_blow <- function (df,
                       topic = NULL,
                       .prior = c("empirical", "uninformative", "tidylo"),
                       .compare = c("dataset", "groups"),
-                      .k_prior = 0.1,
+                      .k_prior = 1,
                       .alpha_prior = 1,
-                      .complete = FALSE,
                       .log_odds = FALSE,
                       .se = FALSE,
                       .odds = FALSE,
@@ -65,10 +64,10 @@ add_blow <- function (df,
 
   df$y_kwi <- pull(df, {{n}})
 
-  if (.complete) {
+  if (.compare == "groups") {
 
     df <- df %>%
-      tidyr::complete({{group}}, {{feature}},
+      tidyr::complete({{topic}}, {{group}}, {{feature}},
                       fill = list(y_kwi = 0)) %>%
       mutate({{n}} := y_kwi)
 
@@ -88,9 +87,11 @@ add_blow <- function (df,
       add_count(.feature, wt = y_kwi, name = "feature_cnt") %>%
       add_count(.topic, .group, wt = y_kwi, name = "topic_group_cnt") %>%
       add_count(.topic, .feature, wt = y_kwi, name = "topic_feature_cnt") %>%
-      mutate(alpha_kwi = feature_cnt / total_cnt * topic_group_cnt * .k_prior,
-             y_kwj = topic_feature_cnt - y_kwi) %>%
-      select(-total_cnt, -feature_cnt, -topic_feature_cnt, -topic_group_cnt)
+      mutate(alpha_kwi = feature_cnt/total_cnt * topic_group_cnt * .k_prior) %>%
+      add_count(.topic, .feature, wt = alpha_kwi, name = "alpha_kw") %>%
+      mutate(y_kwj = topic_feature_cnt - y_kwi,
+             alpha_kwj = alpha_kw - alpha_kwi) %>%
+      select(-total_cnt, -feature_cnt, -topic_feature_cnt, -topic_group_cnt, -alpha_kw)
 
   } else if (.prior == "uninformative") {
 
@@ -107,6 +108,7 @@ add_blow <- function (df,
     df <- df %>%
       add_count(.topic, .feature, wt = y_kwi, name = "feature_cnt") %>%
       mutate(alpha_kwi = .alpha,
+             alpha_kwj = .alpha,
              y_kwj = feature_cnt - y_kwi) %>%
       select(-feature_cnt)
 
@@ -114,7 +116,8 @@ add_blow <- function (df,
 
     df <- df %>%
       add_count(.topic, .feature, wt = y_kwi, name = "feature_cnt") %>%
-      mutate(alpha_kwi = feature_cnt, #* .k_prior,
+      mutate(alpha_kwi = feature_cnt,
+             alpha_kwj = feature_cnt,
              y_kwj = alpha_kwi - y_kwi) %>%
       select(-feature_cnt)
 
@@ -132,16 +135,20 @@ add_blow <- function (df,
       mutate(omega_kwi = (y_kwi + alpha_kwi) / (n_ki + alpha_k0i - y_kwi - alpha_kwi),
              omega_kw = (y_kw + alpha_kw) / (n_k + alpha_k0 - y_kw - alpha_kw),
              delta_kwi = log(omega_kwi) - log(omega_kw),
-             sigma_kwi = sqrt(1 / (y_kwi + alpha_kwi) + 1 / (n_ki + alpha_k0i - y_kwi - alpha_kwi) +
-               1 / (y_kw + alpha_kw) + 1 / (n_k + alpha_k0- y_kw - alpha_kw)),
+             sigma_kwi = sqrt(1 / (y_kwi + alpha_kwi) +
+                                1 / (n_ki + alpha_k0i - y_kwi - alpha_kwi) +
+                                1 / (y_kw + alpha_kw) +
+                                1 / (n_k + alpha_k0- y_kw - alpha_kw)),
              zeta_kwi = delta_kwi / sigma_kwi) %>%
       filter(y_kwi > 0) %>%
       rename(log_odds = delta_kwi,
              se = sigma_kwi,
              zeta = zeta_kwi) %>%
       select(-.group, -.feature, -.topic,
-             -y_kwi, -y_kwj, -y_kw, -n_ki, -n_k,
-             -alpha_kwi, -alpha_kw, -alpha_k0i, -alpha_k0,
+             -y_kwi, -y_kwj, -y_kw,
+             -n_ki, -n_k,
+             -alpha_kwi, -alpha_kw,
+             -alpha_k0i, -alpha_k0,
              -omega_kwi, -omega_kw) %>%
       mutate(odds = exp(log_odds),
              prob = odds / (1 + odds))
@@ -151,20 +158,27 @@ add_blow <- function (df,
     df <- df %>%
       add_count(.topic, .group, wt = y_kwi, name = "n_ki") %>%
       add_count(.topic, .group, wt = alpha_kwi, name = "alpha_k0i") %>%
-      add_count(.topic, .group, wt = y_kwj, name = "n_kj") %>%
-      mutate(omega_kwi = (y_kwi + alpha_kwi) / (n_ki + alpha_k0i - y_kwi - alpha_kwi),
-             omega_kwj = (y_kwj + alpha_kwi) / (n_kj + alpha_k0i - y_kwj - alpha_kwi),
+      add_count(.topic, wt = y_kwi, name = "n_k") %>%
+      add_count(.topic, wt = alpha_kwi, name = "alpha_k0") %>%
+      mutate(n_kj = n_k - n_ki,
+             alpha_k0j = alpha_k0 - alpha_k0i) %>%
+      mutate(omega_kwi = (y_kwi + alpha_kwi)/(n_ki + alpha_k0i - y_kwi - alpha_kwi),
+             omega_kwj = (y_kwj + alpha_kwj)/(n_kj + alpha_k0j - y_kwj - alpha_kwj),
              delta_kwi = log(omega_kwi) - log(omega_kwj),
-             sigma_kwi = sqrt(1 / (y_kwi + alpha_kwi) + 1 / (n_ki + alpha_k0i - y_kwi - alpha_kwi) +
-               1 / (y_kwj + alpha_kwi) + 1 / (n_kj + alpha_k0i - y_kwj - alpha_kwi)),
+             sigma_kwi = sqrt(1/(y_kwi + alpha_kwi) +
+                                1/(n_ki + alpha_k0i - y_kwi - alpha_kwi) +
+                                1/(y_kwj + alpha_kwj) +
+                                1/(n_kj + alpha_k0j - y_kwj - alpha_kwj)),
              zeta_kwi = delta_kwi / sigma_kwi) %>%
       filter(y_kwi > 0) %>%
       rename(log_odds = delta_kwi,
              se = sigma_kwi,
              zeta = zeta_kwi) %>%
       select(-.group, -.feature, -.topic,
-             -y_kwi, -y_kwj, -y_kwj, -n_ki, -n_kj,
-             -alpha_kwi, -alpha_k0i,
+             -y_kwi, -y_kwj, -y_kwj,
+             -n_k, -n_ki, -n_kj,
+             -alpha_kwi,- alpha_kwj,
+             -alpha_k0, -alpha_k0i, -alpha_k0j,
              -omega_kwi, -omega_kwj) %>%
       mutate(odds = exp(log_odds),
              prob = odds / (1 + odds))
@@ -187,75 +201,3 @@ add_blow <- function (df,
   return(df)
 
 }
-
-#' @export
-add_rolling_blow <- function (df,
-                              group,
-                              feature,
-                              n,
-                              date,
-                              window = NULL,
-                              ratio = NULL,
-                              topic = NULL,
-                              .prior = c("empirical", "uninformative", "tidylo"),
-                              .compare = c("dataset", "groups"),
-                              .k_prior = 0.1,
-                              .alpha_prior = 1) {
-
-  if (is.null(window) & is.null(ratio)) stop("Please select either window or ratio")
-
-  if (!is.null(window)) ratio <- 2 / (window + 1)
-
-  df$y_kwi <- pull(df, {{n}})
-  df$.dt <- pull(df, {{date}})
-  df$.group <- pull(df, {{group}})
-  df$.feature <- pull(df, {{feature}})
-  df$.topic <- "none"
-
-  if (!missing(topic)) {df$.topic <- pull(df, {{topic}})}
-
-  df %>%
-    arrange(.dt) %>%
-    group_by(.group, .feature) %>%
-    mutate(ema = .ema(y_kwi, ratio = ratio)) %>%
-    ungroup() %>%
-    nest(data = -.dt) %>%
-    mutate(data = map(data,
-                      ~add_blow(.x, .group, .feature, ema,
-                                .topic, .prior, .compare,
-                                .k_prior, .alpha_prior))) %>%
-    unnest(data) %>%
-    select(-.dt, -ema)
-
-}
-
-#' @export
-plot_rolling_blow <- function(df, date,
-                              group, group_filter,
-                              feature, feature_filter) {
-
-  df$.dt <- pull(df, {{date}})
-  df$.group <- pull(df, {{group}})
-  df$.feature <- pull(df, {{feature}})
-
-  df %>%
-    filter(.group == group_filter,
-           .feature == feature_filter) %>%
-    ggplot(aes(.dt, zeta)) +
-    geom_rect(xmin = -Inf, xmax = Inf, ymin = -1.96, ymax = 1.96, fill = 'grey75') +
-    geom_line() +
-    ggthemes::theme_tufte() +
-    labs(x = NULL)
-
-}
-
-.ema <- function (x, window = NULL, ratio = NULL) {
-
-  if (is.null(window) & is.null(ratio)) stop("Please select either window or ratio")
-
-  if (!is.null(window)) ratio <- 2 / (window + 1)
-
-  c(stats::filter(x = x * ratio, filter = 1 - ratio, method = "recursive", init = x[1]))
-
-}
-
