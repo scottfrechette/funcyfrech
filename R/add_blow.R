@@ -47,7 +47,7 @@ add_blow <- function (df,
                       n,
                       topic = NULL,
                       .prior = c("empirical", "uninformative", "tidylo"),
-                      .compare = c("dataset", "groups"),
+                      .compare = c("dataset", "others"),
                       .k_prior = 1,
                       .alpha_prior = 1,
                       .log_odds = FALSE,
@@ -64,7 +64,7 @@ add_blow <- function (df,
 
   df$y_kwi <- pull(df, {{n}})
 
-  if (.compare == "groups") {
+  if (.compare == "others") {
 
     df <- df %>%
       tidyr::complete({{topic}}, {{group}}, {{feature}},
@@ -153,7 +153,7 @@ add_blow <- function (df,
       mutate(odds = exp(log_odds),
              prob = odds / (1 + odds))
 
-  } else if (.compare == "groups") {
+  } else if (.compare == "others") {
 
     df <- df %>%
       add_count(.topic, .group, wt = y_kwi, name = "n_ki") %>%
